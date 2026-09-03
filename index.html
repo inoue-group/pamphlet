@@ -701,7 +701,7 @@ function viewOrder(){
         const isB = unitOf(t)==="束";
         const q = num(UI.draft[t.id]);
         const opts = (isB? c.bundleOptions : c.qtyOptions).map(o=>{
-          const lbl = isB ? (o+'束（約'+(o*perBundleOf(t))+'部）') : o;
+          const lbl = isB ? (o+'束（約'+(o*perBundleOf(t))+'部）') : (o+'部');
           return '<option value="'+o+'" '+(o===q?"selected":"")+'>'+lbl+'</option>';
         }).join("");
         const img = t.coverImage ? '<img class="thumb" loading="lazy" src="'+t.coverImage+'" alt="">' : '<div class="thumb ph">表紙未登録</div>';
