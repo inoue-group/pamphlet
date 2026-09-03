@@ -601,6 +601,22 @@ function showBanner(msg,type){
 }
 function hideBanner(){ if(bannerTimer){ clearTimeout(bannerTimer); bannerTimer = null; } const b=$("#banner"); if(b) b.className = "banner hide"; }
 
+/* ---------- メール通知（Google Apps Script 経由） ---------- */
+function notifyCfg(){ return (DB.config.app && DB.config.app.notify) || {}; }
+function sendNotify(kind, subject, body){
+  const n = notifyCfg();
+  if(!n.on || !n.url || !n.token) return;
+  const to = kind==="print" ? (n.printTo||"") : (n.submitTo||"");
+  if(!to) return;
+  try{
+    fetch(n.url, {
+      method:"POST", mode:"no-cors", keepalive:true,
+      headers:{ "Content-Type":"text/plain;charset=utf-8" },
+      body: JSON.stringify({ token:n.token, to:to, subject:subject, body:body })
+    }).catch(function(){});
+  }catch(e){}
+}
+
 /* ---------- render ---------- */
 function subUnconfirmedCount(){
   const m = UI.subMonth; let n = 0;
@@ -1104,7 +1120,24 @@ function viewSettings(){
       '</div>';
     }).join("");
 
-  return '<section class="panel"><h2>お知らせ登録</h2>'+
+  const nc = (DB.config.app && DB.config.app.notify) || {};
+  const notifySection = '<section class="panel"><h2>メール通知（新規登録の連絡）</h2>'+
+    '<div class="sub">「提出済み」に新しい提出があったとき、「印刷発注」に新規登録があったときに、担当者へメールを送ります。'+
+    'Google Apps Script を使うため、先に同じフォルダの「メール通知の設定手順.md」を実施してください。</div>'+
+    '<div class="rowline"><label class="muted" style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-act="n-on" '+(nc.on?"checked":"")+'>メール通知を有効にする</label></div>'+
+    '<div class="rowline"><span class="muted" style="min-width:150px">Apps Script の URL</span>'+
+      '<input class="grow" type="text" data-act="n-url" data-fk="n-url" value="'+esc(nc.url||"")+'" placeholder="https://script.google.com/macros/s/.../exec"></div>'+
+    '<div class="rowline"><span class="muted" style="min-width:150px">合言葉（トークン）</span>'+
+      '<input class="grow" type="text" data-act="n-token" data-fk="n-token" value="'+esc(nc.token||"")+'" placeholder="Apps Script と同じ文字列"></div>'+
+    '<div class="rowline"><span class="muted" style="min-width:150px">提出の通知先（在庫管理担当）</span>'+
+      '<input class="grow" type="email" data-act="n-submitto" data-fk="n-submitto" value="'+esc(nc.submitTo||"")+'" placeholder="stock@example.com（カンマ区切りで複数可）"></div>'+
+    '<div class="rowline"><span class="muted" style="min-width:150px">印刷発注の通知先（印刷発注担当）</span>'+
+      '<input class="grow" type="email" data-act="n-printto" data-fk="n-printto" value="'+esc(nc.printTo||"")+'" placeholder="print@example.com（カンマ区切りで複数可）"></div>'+
+    '<div style="margin-top:10px"><button class="btn" data-act="n-test">テスト送信</button> '+
+      '<span class="muted">「提出の通知先」宛にテストメールを送ります。</span></div></section>';
+
+  return notifySection +
+    '<section class="panel"><h2>お知らせ登録</h2>'+
     '<div class="sub">発注タブの上部に表示されます。何も登録が無い（または期間外）のときは表示されません。終了日を過ぎると自動で非表示になります。</div>'+
     (annRows || '<p class="muted">お知らせはありません。</p>')+
     '<div style="margin-top:10px"><button class="btn" data-act="an-add">＋ お知らせを追加</button></div></section>'+
@@ -1202,6 +1235,11 @@ async function onChange(e){
   if(a==="an-text"){ await store.merge("announcements", id, {text:t.value, updatedAt:now()}); return; }
   if(a==="an-from"){ await store.merge("announcements", id, {from:t.value, updatedAt:now()}); renderAll(); return; }
   if(a==="an-to"){ await store.merge("announcements", id, {to:t.value, updatedAt:now()}); renderAll(); return; }
+  if(a==="n-on"){ await store.merge("config","app",{notify:{on:t.checked}, updatedAt:now()}); renderAll(); return; }
+  if(a==="n-url"){ await store.merge("config","app",{notify:{url:t.value.trim()}, updatedAt:now()}); return; }
+  if(a==="n-token"){ await store.merge("config","app",{notify:{token:t.value.trim()}, updatedAt:now()}); return; }
+  if(a==="n-submitto"){ await store.merge("config","app",{notify:{submitTo:t.value.trim()}, updatedAt:now()}); return; }
+  if(a==="n-printto"){ await store.merge("config","app",{notify:{printTo:t.value.trim()}, updatedAt:now()}); return; }
   if(a==="t-img"){
     const f=t.files&&t.files[0]; if(!f) return;
     try{ const d=await fileToThumb(f); await store.merge("pamphletTypes", id, {coverImage:d, updatedAt:now()}); renderAll(); }
@@ -1238,13 +1276,19 @@ async function onClick(e){
     if(!UI.storeId){ showBanner("店舗を選択してください。","err"); return; }
     if(!confirm(UI.month+"／"+(DB.stores[UI.storeId]||{}).name+" を「発注なし」として提出します。よろしいですか？")) return;
     await flushSave(true, "発注なし", "発注なし ");
-    showBanner((DB.stores[UI.storeId]||{}).name+" を発注なしで提出しました。","info");
+    var nm0 = (DB.stores[UI.storeId]||{}).name||"";
+    sendNotify("submit", "【発注なし】"+nm0+" "+UI.month, nm0+" は "+UI.month+" 分を「発注なし」で提出しました。\n担当："+(UI.orderer||"—")+"\n\nアプリ：https://inoue-group.github.io/pamphlet/");
+    showBanner(nm0+" を発注なしで提出しました。","info");
     renderAll(); return;
   }
   if(a==="submit"){
     if(!UI.storeId){ showBanner("店舗を選択してください。","err"); return; }
     await flushSave(true, "提出済", "提出 ");
-    showBanner(UI.month+"／"+(DB.stores[UI.storeId]||{}).name+" の発注を提出しました。","info");
+    var nm1 = (DB.stores[UI.storeId]||{}).name||"";
+    var sh1 = DB.orderSheets[sheetId(UI.month, UI.storeId)] || {};
+    var cnt1 = Object.values(UI.draft).filter(function(v){ return num(v)>0; }).length;
+    sendNotify("submit", "【提出】"+nm1+" "+UI.month+"（"+cnt1+"品目）", nm1+" が "+UI.month+" 分の発注を提出しました。\n担当："+(UI.orderer||"—")+" ／ 品目数："+cnt1+"\n備考："+(UI.draftNote||"（なし）")+"\n\n提出済みタブで確認：https://inoue-group.github.io/pamphlet/");
+    showBanner(UI.month+"／"+nm1+" の発注を提出しました。","info");
     renderAll(); return;
   }
 
@@ -1274,6 +1318,7 @@ async function onClick(e){
       typeId:id, typeName:t.name||"", qty:qty, actualCopies:0, note:"", dueDate:"",
       status:"依頼中", month:UI.sumMonth, createdAt:now(), updatedAt:now()
     });
+    sendNotify("print", "【印刷発注 新規】"+(t.name||"")+" "+qty+"部", (t.name||"")+" を "+qty+" 部、印刷発注に登録しました（対象月 "+UI.sumMonth+"）。\n\n印刷発注タブで確認：https://inoue-group.github.io/pamphlet/");
     UI.tab = "print";
     $$("#tabs button").forEach(x=> x.setAttribute("aria-selected", x.dataset.tab==="print" ? "true":"false"));
     showBanner("印刷発注に登録しました（"+esc(t.name||"")+" "+qty+" 部）。","info"); renderAll(); return;
@@ -1284,10 +1329,13 @@ async function onClick(e){
     const mo = document.getElementById("po-newmonth");
     const tid = sel && sel.value; if(!tid){ showBanner("種類を選択してください。","err"); return; }
     const t = DB.pamphletTypes[tid]||{};
+    const mqty = num(q && q.value);
+    const mmonth = (mo && mo.value) || UI.sumMonth;
     await store.put("printOrders", uid(), {
-      typeId:tid, typeName:t.name||"", qty:num(q && q.value), actualCopies:0, note:"", dueDate:"",
-      status:"依頼中", month:(mo && mo.value) || UI.sumMonth, createdAt:now(), updatedAt:now()
+      typeId:tid, typeName:t.name||"", qty:mqty, actualCopies:0, note:"", dueDate:"",
+      status:"依頼中", month:mmonth, createdAt:now(), updatedAt:now()
     });
+    sendNotify("print", "【印刷発注 新規】"+(t.name||"")+" "+mqty+"部", (t.name||"")+" を "+mqty+" 部、印刷発注に登録しました（対象月 "+mmonth+"）。\n\n印刷発注タブで確認：https://inoue-group.github.io/pamphlet/");
     renderAll(); return;
   }
   if(a==="po-del"){ if(confirm("この印刷発注を削除しますか？")){ await store.remove("printOrders", id); renderAll(); } return; }
@@ -1310,6 +1358,20 @@ async function onClick(e){
   /* 設定：お知らせ */
   if(a==="an-add"){ await store.put("announcements", uid(), {text:"", from:"", to:"", active:true, createdAt:now(), updatedAt:now()}); renderAll(); return; }
   if(a==="an-del"){ if(confirm("このお知らせを削除しますか？")){ await store.remove("announcements", id); renderAll(); } return; }
+
+  /* 設定：メール通知テスト */
+  if(a==="n-test"){
+    const n = notifyCfg();
+    if(!n.url || !n.token){ showBanner("Apps Script の URL と合言葉を入力してください。","err"); return; }
+    if(!n.submitTo){ showBanner("「提出の通知先」を入力してください。","err"); return; }
+    try{
+      await fetch(n.url, {method:"POST", mode:"no-cors", headers:{"Content-Type":"text/plain;charset=utf-8"},
+        body: JSON.stringify({token:n.token, to:n.submitTo, subject:"【テスト】パンフレット発注管理 メール通知",
+          body:"これはテストメールです。届いていれば設定は正常です。\n\n"+new Date().toLocaleString()})});
+      showBanner("テスト送信しました（"+n.submitTo+"）。数分待っても届かない場合は Apps Script の設定を確認してください。","info");
+    }catch(e){ showBanner("送信に失敗しました："+e.message,"err"); }
+    return;
+  }
 
   /* 設定：店舗 */
   if(a==="s-add"){ const n=storesSorted().length; await store.put("stores", uid(), {name:"新規店舗", sortOrder:(n+1)*10, active:true}); renderAll(); return; }
