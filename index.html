@@ -617,6 +617,22 @@ function sendNotify(kind, subject, body){
   }catch(e){}
 }
 
+/* ---------- 設定タブのパスワード（誤操作防止） ---------- */
+function hashStr(s){ let h=5381; for(let i=0;i<s.length;i++){ h=((h<<5)+h+s.charCodeAt(i))|0; } return (h>>>0).toString(16); }
+function settingsPassHash(){ return (DB.config.app && DB.config.app.settingsPassHash) || ""; }
+function settingsUnlocked(){
+  if(!settingsPassHash()) return true;
+  try{ return sessionStorage.getItem("pamph_set_ok") === settingsPassHash(); }catch(e){ return false; }
+}
+function viewSettingsLock(){
+  return '<section class="panel"><h2>設定タブはパスワードで保護されています</h2>'+
+    '<div class="sub">管理担当者にパスワードを確認してください。</div>'+
+    '<div class="row">'+
+      '<div class="fld"><label>パスワード</label><input type="password" id="set-pw" data-fk="set-pw"></div>'+
+      '<div class="fld" style="min-width:auto"><label>&nbsp;</label><button class="btn primary" data-act="settings-unlock">解除</button></div>'+
+    '</div></section>';
+}
+
 /* ---------- render ---------- */
 function subUnconfirmedCount(){
   const m = UI.subMonth; let n = 0;
@@ -655,7 +671,7 @@ function renderAll(){
   else if(UI.tab==="summary") v.innerHTML = viewSummary();
   else if(UI.tab==="print")   v.innerHTML = viewPrint();
   else if(UI.tab==="catalog") v.innerHTML = viewCatalog();
-  else if(UI.tab==="settings")v.innerHTML = viewSettings();
+  else if(UI.tab==="settings")v.innerHTML = settingsUnlocked() ? viewSettings() : viewSettingsLock();
 
   if(fk){
     const t = v.querySelector('[data-fk="'+ (window.CSS && CSS.escape ? CSS.escape(fk) : fk) +'"]');
@@ -1136,7 +1152,18 @@ function viewSettings(){
     '<div style="margin-top:10px"><button class="btn" data-act="n-test">テスト送信</button> '+
       '<span class="muted">「提出の通知先」宛にテストメールを送ります。</span></div></section>';
 
-  return notifySection +
+  const hasPw = !!settingsPassHash();
+  const pwSection = '<section class="panel"><h2>設定タブのパスワード</h2>'+
+    '<div class="sub">設定するとこのタブを開くときにパスワードを求めます（同じブラウザでは一度入力すれば、閉じるまで再入力不要）。'+
+    'データそのものの保護ではなく、店舗の人などの誤操作を防ぐためのものです。</div>'+
+    '<div class="row">'+
+      '<div class="fld"><label>新しいパスワード（3文字以上）</label><input type="password" id="set-newpw" data-fk="set-newpw"></div>'+
+      '<div class="fld" style="min-width:auto"><label>&nbsp;</label><button class="btn" data-act="settings-setpw">保存</button></div>'+
+      (hasPw? '<div class="fld" style="min-width:auto"><label>&nbsp;</label><button class="btn danger" data-act="settings-clearpw">パスワードを解除（なしに戻す）</button></div>' : '')+
+    '</div>'+
+    '<div class="muted" style="margin-top:6px">現在：'+(hasPw? '<b>設定あり</b>' : '設定なし（誰でも開けます）')+'</div></section>';
+
+  return notifySection + pwSection +
     '<section class="panel"><h2>お知らせ登録</h2>'+
     '<div class="sub">発注タブの上部に表示されます。何も登録が無い（または期間外）のときは表示されません。終了日を過ぎると自動で非表示になります。</div>'+
     (annRows || '<p class="muted">お知らせはありません。</p>')+
@@ -1358,6 +1385,29 @@ async function onClick(e){
   /* 設定：お知らせ */
   if(a==="an-add"){ await store.put("announcements", uid(), {text:"", from:"", to:"", active:true, createdAt:now(), updatedAt:now()}); renderAll(); return; }
   if(a==="an-del"){ if(confirm("このお知らせを削除しますか？")){ await store.remove("announcements", id); renderAll(); } return; }
+
+  /* 設定タブのパスワード */
+  if(a==="settings-unlock"){
+    const v = (document.getElementById("set-pw")||{}).value||"";
+    if(hashStr(v) === settingsPassHash()){
+      try{ sessionStorage.setItem("pamph_set_ok", settingsPassHash()); }catch(e){}
+      showBanner("設定タブを解除しました。","info"); renderAll();
+    }else{ showBanner("パスワードが違います。","err"); }
+    return;
+  }
+  if(a==="settings-setpw"){
+    const v = (document.getElementById("set-newpw")||{}).value||"";
+    if(v.length<3){ showBanner("パスワードは3文字以上で設定してください。","err"); return; }
+    const h = hashStr(v);
+    await store.merge("config","app",{settingsPassHash:h, updatedAt:now()});
+    try{ sessionStorage.setItem("pamph_set_ok", h); }catch(e){}
+    showBanner("設定タブのパスワードを保存しました。","info"); renderAll(); return;
+  }
+  if(a==="settings-clearpw"){
+    if(!confirm("設定タブのパスワードを解除しますか？（誰でも設定タブを開けるようになります）")) return;
+    await store.merge("config","app",{settingsPassHash:"", updatedAt:now()});
+    showBanner("設定タブのパスワードを解除しました。","info"); renderAll(); return;
+  }
 
   /* 設定：メール通知テスト */
   if(a==="n-test"){
