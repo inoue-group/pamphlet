@@ -241,6 +241,13 @@ const num = v => { const n = Number(v); return Number.isFinite(n)? n : 0; };
 const pad2 = n => String(n).padStart(2,"0");
 function todayMonth(){ const d=new Date(); return d.getFullYear()+"-"+pad2(d.getMonth()+1); }
 function todayISO(){ const d=new Date(); return d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate()); }
+/* 保存されている UTC の ISO 文字列を、端末のローカル時刻・24時間表記で表示 */
+function fmtDT(iso){
+  if(!iso) return "";
+  const d = new Date(iso);
+  if(isNaN(d.getTime())) return String(iso).slice(0,16).replace("T"," ");
+  return d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate())+" "+pad2(d.getHours())+":"+pad2(d.getMinutes());
+}
 function monthsAgo(n){ const d=new Date(); d.setDate(1); d.setMonth(d.getMonth()-n); return d.getFullYear()+"-"+pad2(d.getMonth()+1); }
 function monthRange(from,to){
   const out=[]; let a=from.split("-").map(Number), b=to.split("-").map(Number), y=a[0], m=a[1], g=0;
@@ -732,7 +739,7 @@ function viewOrder(){
       '<span class="save-state '+(UI.draftDirty?"dirty":"saved")+'" id="saveState">'+(UI.draftDirty?"未保存の変更あり":"保存済み")+'</span>'+
       '</div>';
     if(sh && sh.history && sh.history.length)
-      body += '<div style="margin-top:12px" class="hist-note">履歴：'+ sh.history.slice(-6).map(h=> esc((h.at||"").slice(0,16).replace("T"," "))+" "+esc(h.label)).join(" ／ ") +'</div>';
+      body += '<div style="margin-top:12px" class="hist-note">履歴：'+ sh.history.slice(-6).map(h=> esc(fmtDT(h.at))+" "+esc(h.label)).join(" ／ ") +'</div>';
   }
 
   const anns = activeAnnouncements();
@@ -814,7 +821,7 @@ function viewSubmitted(){
       '<span class="pill" style="background:'+statusColor(sh.status)+'">'+esc(sh.status)+'</span>'+
       '<span class="muted">担当：'+esc(sh.orderer||"—")+'</span>'+
       '<span class="muted">'+items.length+' 品目 ／ 約 '+copies+' 部</span>'+
-      '<span class="muted">'+esc((sh.updatedAt||"").slice(0,16).replace("T"," "))+'</span>'+
+      '<span class="muted">'+esc(fmtDT(sh.updatedAt))+'</span>'+
       '<span style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">'+
         (unconf ? '<button class="btn sm" data-act="sub-confirm" data-id="'+s.id+'">確認</button>' : '<button class="btn sm" data-act="sub-unconfirm" data-id="'+s.id+'">確認取消</button>')+
         '<button class="btn sm" data-act="sub-unsubmit" data-id="'+s.id+'">提出取消</button>'+
@@ -917,7 +924,7 @@ function viewHistory(){
         .map(([tid,v])=>{ const t=DB.pamphletTypes[tid]||{}; return {name:t.name||tid, v:num(v), u:unitOf(t), c:toCopies(t,v)}; })
         .sort((a,b)=> b.c-a.c);
       detail =
-        '<div class="muted" style="margin-bottom:6px">状態：<span class="pill" style="background:'+statusColor(dsh.status)+'">'+esc(dsh.status||"")+'</span> ／ 担当：'+esc(dsh.orderer||"—")+' ／ 更新：'+esc((dsh.updatedAt||"").slice(0,16).replace("T"," "))+'</div>'+
+        '<div class="muted" style="margin-bottom:6px">状態：<span class="pill" style="background:'+statusColor(dsh.status)+'">'+esc(dsh.status||"")+'</span> ／ 担当：'+esc(dsh.orderer||"—")+' ／ 更新：'+esc(fmtDT(dsh.updatedAt))+'</div>'+
         '<div class="tbl-wrap"><table><thead><tr><th>種類</th><th class="num">発注数</th><th class="num">部換算</th></tr></thead><tbody>'+
         (lines.length? lines.map(l=> '<tr><td>'+esc(l.name)+'</td><td class="num">'+l.v+' '+l.u+'</td><td class="num">'+l.c+'</td></tr>').join("")
                      : '<tr><td colspan="3" class="muted">数量入力なし</td></tr>')+
