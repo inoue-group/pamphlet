@@ -478,23 +478,16 @@ function maybeSeed(){
 let coversBackfilled = false;
 function backfillCovers(){
   if(coversBackfilled) return;
+  if(!DB.config.app) return;                 // config が来るまで待つ（フラグ判定のため）
   const types = Object.values(DB.pamphletTypes);
   if(!types.length) return;
   coversBackfilled = true;
+  if(DB.config.app.coversBackfilledV1) return;   // 一度実行済みなら二度と触らない（画像削除が戻る問題を防ぐ）
   types.forEach(t=>{
     if((!t.coverImage || t.coverImage==="") && SEED_COVERS[t.name])
       store.merge("pamphletTypes", t.id, {coverImage:SEED_COVERS[t.name], updatedAt:now()});
   });
-}
-let unitsMigrated = false;
-function migrateUnitsToBundle(){
-  if(unitsMigrated) return;
-  const types = Object.values(DB.pamphletTypes);
-  if(!types.length) return;
-  if((DB.config.app||{}).unitDefaultBundleV1){ unitsMigrated = true; return; }
-  unitsMigrated = true;
-  types.forEach(t=>{ if(t.unit!=="束") store.merge("pamphletTypes", t.id, {unit:"束", perBundle:perBundleOf(t), updatedAt:now()}); });
-  store.merge("config","app",{unitDefaultBundleV1:true, updatedAt:now()});
+  store.merge("config","app",{coversBackfilledV1:true, updatedAt:now()});
 }
 const CATALOG_SEED = [
   ["Brand Guide","https://my.ebook5.net/inoue-group/brand_guide/"],
@@ -574,7 +567,7 @@ function boot(){
   }catch(e){}
 
   const render = debounce(renderAll, 60);
-  COLLS.forEach(coll=> store.watch(coll, m=>{ DB[coll]=m; maybeSeed(); if(coll==="pamphletTypes"){ backfillCovers(); migrateUnitsToBundle(); fixSortOrders(); } seedCatalogsV1(); maybeAutoPick(); render(); }));
+  COLLS.forEach(coll=> store.watch(coll, m=>{ DB[coll]=m; maybeSeed(); if(coll==="pamphletTypes") fixSortOrders(); backfillCovers(); seedCatalogsV1(); maybeAutoPick(); render(); }));
 
   $("#tabs").addEventListener("click", e=>{
     const b = e.target.closest("button[data-tab]"); if(!b) return;
