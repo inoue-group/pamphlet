@@ -199,6 +199,39 @@ window.PAMPH_FIREBASE_CONFIG = {
     .pnote{ margin-top:5px; border:1px solid #999; min-height:20px; padding:3px 8px; font-size:9px }
     .pnote b{ font-size:9px; margin-right:6px }
   }
+
+  /* モーダル（チュートリアル・使い方ガイド） */
+  .modal-wrap{ position:fixed; inset:0; background:rgba(15,20,30,.5); z-index:60; display:flex; align-items:center; justify-content:center; padding:16px }
+  .modal-wrap.hide{ display:none }
+  .modal-card{ background:var(--panel); border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); width:100%; max-width:620px; max-height:88vh; display:flex; flex-direction:column }
+  .modal-head{ padding:14px 18px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; gap:10px }
+  .modal-head b{ font-size:15px }
+  .modal-x{ background:transparent; border:0; color:var(--ink-soft); font-size:20px; line-height:1; cursor:pointer; padding:0 4px }
+  .modal-body{ padding:16px 20px; overflow:auto; font-size:14px; line-height:1.85 }
+  .modal-body h4{ margin:16px 0 4px; font-size:13.5px; color:var(--accent-ink); border-left:4px solid var(--accent); padding-left:7px }
+  .modal-body h4:first-child{ margin-top:0 }
+  .modal-body ul,.modal-body ol{ margin:4px 0; padding-left:22px }
+  .modal-body li{ margin:3px 0 }
+  .modal-body .lead{ font-size:14px; background:var(--accent-soft); border:1px solid color-mix(in srgb,var(--accent) 25%,var(--line)); border-radius:10px; padding:10px 12px }
+  .modal-foot{ padding:12px 18px; border-top:1px solid var(--line); display:flex; gap:8px; align-items:center; flex-wrap:wrap }
+  .modal-foot .sp{ margin-left:auto }
+  .modal-step{ font-size:12px; font-weight:700; color:var(--ink-soft) }
+
+  /* スポットライト式ツアー */
+  #tour{ position:fixed; inset:0; z-index:70 }
+  #tour.hide{ display:none }
+  #tour.dim{ background:rgba(15,20,30,.55) }
+  .tour-hole{ position:fixed; border-radius:10px; outline:3px solid #38bdf8;
+    box-shadow:0 0 0 4px rgba(56,189,248,.35), 0 0 0 9999px rgba(15,20,30,.55);
+    pointer-events:none; transition:left .15s,top .15s,width .15s,height .15s }
+  .tour-tip{ position:fixed; width:320px; max-width:calc(100vw - 24px); background:var(--panel); color:var(--ink);
+    border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow); padding:14px 16px; font-size:13.5px; line-height:1.8 }
+  .tour-tip.center{ left:50% !important; top:50% !important; transform:translate(-50%,-50%); width:440px }
+  .tour-tip .big{ background:var(--accent-soft); border:1px solid color-mix(in srgb,var(--accent) 25%,var(--line)); border-radius:8px; padding:9px 11px }
+  .tour-tip .dim2{ color:var(--ink-soft); font-size:12px }
+  .tour-step{ font-size:11px; font-weight:700; color:var(--ink-soft); margin-bottom:5px }
+  .tour-btns{ display:flex; gap:8px; margin-top:12px; align-items:center; flex-wrap:wrap }
+  .tour-btns .sp{ margin-left:auto }
 </style>
 </head>
 <body>
@@ -226,6 +259,8 @@ window.PAMPH_FIREBASE_CONFIG = {
 <div class="banner hide" id="banner"></div>
 <main id="view"></main>
 <div id="printArea" aria-hidden="true"></div>
+<div id="modal" class="modal-wrap hide"></div>
+<div id="tour" class="hide"></div>
 
 <script>
 (function(){
@@ -581,6 +616,7 @@ function boot(){
     UI.tab = b.dataset.tab;
     $$("#tabs button").forEach(x=> x.setAttribute("aria-selected", x===b ? "true":"false"));
     renderAll();
+    maybeAutoTour(UI.tab);
   });
 
   const v = $("#view");
@@ -589,6 +625,13 @@ function boot(){
   v.addEventListener("input", onInput);
 
   $("#banner").addEventListener("click", e=>{ if(e.target.closest(".banner-x")) hideBanner(); });
+  $("#modal").addEventListener("click", onModalClick);
+  $("#tour").addEventListener("click", onTourClick);
+  document.addEventListener("keydown", e=>{
+    if(e.key!=="Escape") return;
+    if(!$("#tour").classList.contains("hide")){ endTour(); return; }
+    if(!$("#modal").classList.contains("hide")){ closeModal(); }
+  });
 }
 let bannerTimer = null;
 function showBanner(msg,type){
@@ -600,6 +643,161 @@ function showBanner(msg,type){
   if(type !== "err") bannerTimer = setTimeout(hideBanner, 30000);
 }
 function hideBanner(){ if(bannerTimer){ clearTimeout(bannerTimer); bannerTimer = null; } const b=$("#banner"); if(b) b.className = "banner hide"; }
+
+/* ---------- モーダル / チュートリアル / 使い方ガイド ---------- */
+function openModal(title, bodyHtml, footHtml){
+  const m = $("#modal");
+  m.innerHTML =
+    '<div class="modal-card" role="dialog" aria-modal="true">'+
+      '<div class="modal-head"><b>'+esc(title)+'</b><button type="button" class="modal-x" data-act="modal-close" aria-label="閉じる">×</button></div>'+
+      '<div class="modal-body">'+bodyHtml+'</div>'+
+      '<div class="modal-foot">'+(footHtml||'<button class="btn primary sp" data-act="modal-close">閉じる</button>')+'</div>'+
+    '</div>';
+  m.className = "modal-wrap";
+}
+function closeModal(){ const m=$("#modal"); m.className="modal-wrap hide"; m.innerHTML=""; }
+
+/* ---------- 使い方ツアー（スポットライト式）＆ 使い方ガイド ---------- */
+const TOURS = {
+  order: [
+    { sel:null, title:"ようこそ", html:'<div class="big">このアプリは、毎月のパンフレット必要数を入力して本社に送るためのものです。画面を見ながら順番に説明します（約1分）。</div>' },
+    { sel:'[data-act="month"]', html:'<b>① 対象月</b><br>発注する月を選びます。通常はこのままでOK。過去の月を選ぶとその月の内容を確認・修正できます。' },
+    { sel:'[data-act="store"]', html:'<b>② 店舗</b><br>自分の店舗を選びます。次回からは自動で表示されます。<br><span class="dim2">※いまは説明用に先頭の店舗が選ばれています。あとで自分の店舗に変えてください。</span>' },
+    { sel:'[data-act="orderer"]', html:'<b>③ 担当者名</b><br>入力するご自身の名前を入れます（例：鈴木）。' },
+    { sel:'.grid .card', html:'<b>④ 数量を選ぶ</b><br>表紙を見ながら、下のプルダウンで必要数を選びます。入れると<b>赤字</b>に（0はグレー）。「束」の種類は束数で。必要なものだけでOK。' },
+    { sel:'[data-act="submit"]', html:'<b>⑤ 提出する</b><br>入力し終えたらこのボタンを押すと本社に届きます（自動保存されているので押し忘れても内容は残ります）。' },
+    { sel:'[data-act="submit-none"]', html:'<b>今月は発注なし</b><br>その月に発注が無いときはこちらを押します。押さないと「未提出」の店舗として残ります。' },
+    { sel:'[data-act="open-guide"]', html:'<b>使い方ガイド</b><br>分からなくなったら、いつでもここから説明とこのツアーを見られます。' },
+    { sel:null, title:"準備OK！", html:'<div class="big">説明は以上です。さっそく入力してみましょう。</div>', last:true }
+  ],
+  submitted: [
+    { sel:null, title:"「提出済み」タブ", html:'<div class="big">各店舗から届いた発注を確認し、印刷して振り分けるための画面です。</div>' },
+    { sel:'[data-act="sub-month"]', html:'<b>対象月</b><br>確認する月を選びます。上部のバッジで「未提出／提出済」の店舗数が分かります。' },
+    { sel:'.sub-row', html:'<b>店舗ごとの行</b><br>「▼」で発注内訳を開けます。赤枠＋「新規」は未確認の提出。<br>「確認」で確認済みに（タブの赤バッジが減る）。「提出取消」で店舗に差し戻し。', optional:true },
+    { sel:'[data-act="sub-printall"]', html:'<b>まとめて印刷</b><br>提出済み全店舗を、店舗ごとにページを分けて連続印刷します（各行の「この店舗を印刷」で1店舗だけも可）。' },
+    { sel:'[data-act="open-guide"]', html:'<b>使い方ガイド</b><br>いつでもここから説明とこのツアーを見られます。', optional:true },
+    { sel:null, title:"OK！", html:'<div class="big">未提出の店舗に声かけ →「確認」→ 印刷、の流れで使ってください。</div>', last:true }
+  ],
+  history: [
+    { sel:null, title:"「履歴」タブ", html:'<div class="big">種類ごと・月ごとの発注数の推移を確認できる画面です。</div>' },
+    { sel:'[data-act="hfrom"]', html:'<b>期間（開始・終了）</b><br>集計する月の範囲を指定します。' },
+    { sel:'[data-act="hstore"]', html:'<b>店舗で絞り込み</b><br>「全店舗（合計）」または特定の店舗に絞れます。' },
+    { sel:'[data-act="htype"]', html:'<b>パンフレット種類で絞り込み</b><br>特定の種類だけを表示できます。' },
+    { sel:'.tbl-wrap', html:'<b>ピボット表</b><br>行＝種類、列＝月、セル＝発注数。行合計は種類の単位のまま、月合計・総合計は「部換算」で表示されます。下の「回ごとの提出内容」で当時の明細も見られます。' },
+    { sel:'[data-act="open-guide"]', html:'<b>使い方ガイド</b><br>いつでもここから説明とこのツアーを見られます。', optional:true },
+    { sel:null, title:"OK！", html:'<div class="big">次回の印刷数量を決める目安に使ってください。</div>', last:true }
+  ]
+};
+const GUIDES = {
+  order:
+    '<h4>このアプリについて</h4>'+
+    '<ul><li>毎月のパンフレット必要数を入力して本社に送るアプリです</li>'+
+    '<li>URLをブラウザで開くだけ（PC・スマホ可）。インストール・ログイン不要</li>'+
+    '<li>入力は自動保存。最後に「提出」を押すと本社に届きます</li></ul>'+
+    '<h4>毎月の手順（3ステップ）</h4>'+
+    '<ol><li><b>月・店舗・担当者を選ぶ</b></li>'+
+    '<li><b>数量を選ぶ</b>：表紙を見ながらプルダウンで。入れると赤字。「束」の種類は束数で。必要なものだけ。特記は「備考」へ</li>'+
+    '<li><b>提出する</b>：「この内容で提出」／発注が無い月は「今月は発注なしで提出」</li></ol>'+
+    '<h4>お知らせ</h4><p>画面の一番上に「📢 お知らせ」が出たら読んでください。</p>'+
+    '<h4>提出したあとで直すとき</h4><p>同じ「対象月」「店舗」を選び直して数量を直し、もう一度「この内容で提出」。</p>'+
+    '<h4>過去の発注数</h4><p>「履歴」タブで確認できます。</p>'+
+    '<h4>困ったとき</h4><ul><li>画面がおかしい → 再読み込み（PCは F5、スマホは下へ引っ張る）</li>'+
+    '<li>右上が「ローカル demo モード」→ 正しいURLを確認</li>'+
+    '<li>提出したのに「未提出」→ 「対象月」を確認</li></ul>',
+  submitted:
+    '<h4>この画面の役割</h4><p>店舗から届いた発注を確認し、印刷して現物を振り分けます。</p>'+
+    '<h4>手順</h4>'+
+    '<ol><li><b>対象月</b>を選ぶ。ヘッダーの「未提出 N / 12」で未提出店舗を把握し声かけ</li>'+
+    '<li>各行の <b>▼</b> で発注内訳を確認</li>'+
+    '<li>内容を見たら <b>「確認」</b>（タブの赤バッジが減る／「確認取消」で戻せる）</li>'+
+    '<li>修正が必要なら <b>「提出取消」</b> で店舗に差し戻し</li>'+
+    '<li><b>「この店舗を印刷」</b>／<b>「提出分をまとめて印刷」</b> でA4横1枚に出力</li></ol>'+
+    '<h4>印刷のコツ</h4><p>印刷ダイアログで「背景のグラフィック」をオン、用紙は A4・横。</p>',
+  history:
+    '<h4>この画面の役割</h4><p>種類ごと・月ごとの発注数の推移を確認します。</p>'+
+    '<h4>使い方</h4>'+
+    '<ul><li><b>期間（開始・終了）</b>・<b>店舗</b>・<b>パンフレット種類</b>で絞り込み</li>'+
+    '<li>表：行＝種類、列＝月、セル＝発注数。行合計は種類の単位のまま、月合計・総合計は「部換算」</li>'+
+    '<li>下の「回ごとの提出内容」で、月＋店舗を選ぶと当時の明細</li></ul>'
+};
+function guideTitle(tab){ return tab==="submitted" ? "使い方ガイド（提出済み）" : tab==="history" ? "使い方ガイド（履歴）" : "使い方ガイド（発注）"; }
+
+let tourTab = "order", tourIdx = 0;
+function tourDoneKey(tab){ return "pamph_tut_"+tab+"_v1"; }
+function markTourDone(tab){ try{ localStorage.setItem(tourDoneKey(tab||tourTab),"1"); }catch(e){} }
+function maybeAutoTour(tab){
+  if(!TOURS[tab]) return;
+  try{ if(location.search.indexOf("shot")>=0) return; }catch(e){}
+  let done=false; try{ done = !!localStorage.getItem(tourDoneKey(tab)); }catch(e){ done=true; }
+  if(done) return;
+  setTimeout(function(){ if(UI.tab===tab && $("#tour").classList.contains("hide") && $("#modal").classList.contains("hide")) startTour(tab); }, 450);
+}
+function startTour(tab){
+  tourTab = TOURS[tab] ? tab : "order";
+  tourIdx = 0;
+  closeModal();
+  if(tourTab==="order"){
+    try{ if(!UI.storeId){ const st = activeStores(); if(st.length){ UI.storeId = st[0].id; savePrefs(); loadDraftFor(UI.month, UI.storeId); renderAll(); } } }catch(e){}
+  }
+  window.addEventListener("resize", onTourResize);
+  showTourStep();
+}
+function onTourResize(){ if(!$("#tour").classList.contains("hide")) showTourStep(); }
+function endTour(){ const t=$("#tour"); t.className="hide"; t.innerHTML=""; window.removeEventListener("resize", onTourResize); markTourDone(tourTab); }
+function showTourStep(){
+  const steps = TOURS[tourTab] || [];
+  if(tourIdx<0) tourIdx=0;
+  if(tourIdx>=steps.length){ endTour(); return; }
+  const s = steps[tourIdx];
+  let el = s.sel ? document.querySelector(s.sel) : null;
+  if(s.sel && !el && tourIdx < steps.length-1){ tourIdx++; return showTourStep(); }
+  if(el && el.scrollIntoView){ el.scrollIntoView({block:"center"}); }
+  requestAnimationFrame(function(){
+    const last = tourIdx === steps.length-1;
+    const nav =
+      '<div class="tour-step">'+(tourIdx+1)+' / '+steps.length+'</div>'+
+      '<div class="tour-text">'+ s.html +'</div>'+
+      '<div class="tour-btns">'+
+        '<button class="btn sm" data-act="tour-skip">'+(last?"閉じる":"スキップ")+'</button>'+
+        (tourIdx>0 ? '<button class="btn sm" data-act="tour-prev">戻る</button>' : '')+
+        '<button class="btn sm primary sp" data-act="'+(last?"tour-done":"tour-next")+'">'+(last?"はじめる":"次へ")+'</button>'+
+      '</div>';
+    const tour = $("#tour");
+    let holeHtml="", tipStyle="", centered = !el;
+    if(el){
+      const r = el.getBoundingClientRect();
+      const p = 6;
+      const hx = Math.max(4, r.left-p), hy = Math.max(4, r.top-p);
+      holeHtml = '<div class="tour-hole" style="left:'+hx+'px;top:'+hy+'px;width:'+(r.width+p*2)+'px;height:'+(r.height+p*2)+'px"></div>';
+      const vw = window.innerWidth, vh = window.innerHeight, tw = 320;
+      if(vw - r.right > tw + 24) tipStyle = 'left:'+(r.right+16)+'px;top:'+Math.max(12, Math.min(r.top, vh-240))+'px';
+      else if(vh - r.bottom > 210) tipStyle = 'left:'+Math.max(12, Math.min(r.left, vw-tw-16))+'px;top:'+(r.bottom+16)+'px';
+      else tipStyle = 'left:'+Math.max(12, Math.min(r.left, vw-tw-16))+'px;top:'+Math.max(12, r.bottom-240)+'px';
+    }
+    tour.className = centered ? "dim" : "";
+    tour.innerHTML = holeHtml + '<div class="tour-tip'+(centered?" center":"")+'"'+(centered?"":' style="'+tipStyle+'"')+'>'+nav+'</div>';
+  });
+}
+function onTourClick(e){
+  const b = e.target.closest("[data-act]"); if(!b) return;
+  const a = b.dataset.act;
+  if(a==="tour-skip" || a==="tour-done"){ endTour(); }
+  else if(a==="tour-next"){ tourIdx++; showTourStep(); }
+  else if(a==="tour-prev"){ tourIdx--; showTourStep(); }
+}
+function openGuide(tab){
+  tab = GUIDES[tab] ? tab : "order";
+  openModal(guideTitle(tab), GUIDES[tab],
+    '<button class="btn sm" data-act="tut-start" data-tab="'+tab+'">この画面のツアーを見る</button>'+
+    '<button class="btn primary sm sp" data-act="modal-close">閉じる</button>');
+}
+function onModalClick(e){
+  if(e.target.id === "modal"){ closeModal(); return; }
+  const b = e.target.closest("[data-act]"); if(!b) return;
+  const a = b.dataset.act;
+  if(a==="modal-close"){ closeModal(); }
+  else if(a==="tut-start"){ startTour(b.dataset.tab || "order"); }
+}
 
 /* ---------- メール通知（Google Apps Script 経由） ---------- */
 function notifyCfg(){ return (DB.config.app && DB.config.app.notify) || {}; }
@@ -750,7 +948,10 @@ function viewOrder(){
     : '';
 
   return noticeHtml + '<section class="panel">'+
-    '<h2>月次発注シート</h2><div class="sub">各店舗が対象月のパンフレット必要数をプルダウンで入力し、提出します。「束」の種類は束数で入力（約◯部を併記）。</div>'+
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">'+
+      '<div><h2>月次発注シート</h2><div class="sub">各店舗が対象月のパンフレット必要数をプルダウンで入力し、提出します。「束」の種類は束数で入力（約◯部を併記）。</div></div>'+
+      '<button class="btn" data-act="open-guide">📖 使い方ガイド</button>'+
+    '</div>'+
     '<div class="row">'+
       '<div class="fld"><label>対象月</label><input type="month" data-act="month" value="'+esc(UI.month)+'"></div>'+
       '<div class="fld"><label>店舗</label><select data-act="store">'+stOpts+'</select></div>'+
@@ -831,8 +1032,11 @@ function viewSubmitted(){
   }).join("");
 
   return '<section class="panel">'+
-    '<h2>提出済み（提出データの確認・印刷）</h2>'+
-    '<div class="sub">提出された発注データを店舗ごとに確認し、印刷して振り分けに使います。印刷は添付フォーマット（表紙＋発注数）で出力されます。</div>'+
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">'+
+      '<div><h2>提出済み（提出データの確認・印刷）</h2>'+
+      '<div class="sub">提出された発注データを店舗ごとに確認し、印刷して振り分けに使います。印刷は添付フォーマット（表紙＋発注数）で出力されます。</div></div>'+
+      '<button class="btn" data-act="open-guide">📖 使い方ガイド</button>'+
+    '</div>'+
     '<div class="row">'+
       '<div class="fld"><label>対象月</label><input type="month" data-act="sub-month" value="'+esc(m)+'"></div>'+
       '<div class="fld" style="min-width:auto"><label>&nbsp;</label><div><span class="badge">提出済 <b>'+done+'</b> / '+stores.length+' 店舗</span></div></div>'+
@@ -935,7 +1139,10 @@ function viewHistory(){
   }
 
   return '<section class="panel">'+
-    '<h2>過去の発注数</h2><div class="sub">種類ごと・月ごとの発注数の推移を確認できます。</div>'+
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">'+
+      '<div><h2>過去の発注数</h2><div class="sub">種類ごと・月ごとの発注数の推移を確認できます。</div></div>'+
+      '<button class="btn" data-act="open-guide">📖 使い方ガイド</button>'+
+    '</div>'+
     '<div class="row">'+
       '<div class="fld"><label>期間（開始）</label><input type="month" data-act="hfrom" value="'+esc(h.from)+'"></div>'+
       '<div class="fld"><label>期間（終了）</label><input type="month" data-act="hto" value="'+esc(h.to)+'"></div>'+
@@ -1301,6 +1508,7 @@ async function onClick(e){
   const a = b.dataset.act, id = b.dataset.id, idx = b.dataset.idx;
 
   /* 発注 */
+  if(a==="open-guide"){ openGuide(UI.tab); return; }
   if(a==="save"){ await flushSave(false); renderAll(); return; }
   if(a==="submit-none"){
     if(!UI.storeId){ showBanner("店舗を選択してください。","err"); return; }
@@ -1492,7 +1700,14 @@ function maybeAutoPick(){
 }
 
 /* ---------- go ---------- */
-function start(){ boot(); loadDraftFor(UI.month, UI.storeId); renderAll(); }
+function start(){
+  boot(); loadDraftFor(UI.month, UI.storeId); renderAll();
+  try{
+    const forced = new URLSearchParams(location.search).get("tour");
+    if(forced && TOURS[forced]){ setTimeout(function(){ startTour(forced); }, 500); return; }
+  }catch(e){}
+  maybeAutoTour(UI.tab);
+}
 if(document.readyState==="loading") document.addEventListener("DOMContentLoaded", start);
 else start();
 
