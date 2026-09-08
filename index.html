@@ -252,7 +252,8 @@ window.PAMPH_FIREBASE_CONFIG = {
     <button data-tab="summary"   aria-selected="false">集計</button>
     <button data-tab="print"     aria-selected="false">印刷発注</button>
     <button data-tab="catalog"   aria-selected="false">WEBカタログ</button>
-    <button data-tab="settings" aria-selected="false">設定</button>
+    <button data-tab="settings"  aria-selected="false">設定</button>
+    <button data-tab="feedback"  aria-selected="false">意見箱</button>
   </nav>
 </header>
 
@@ -336,7 +337,7 @@ const DEFAULT_CONFIG = {
   statuses:[
     {name:"下書き",     color:"#6b7280"},
     {name:"提出済",     color:"#2563eb"},
-    {name:"本社確認済", color:"#7c3aed"},
+    {name:"担当者確認済", color:"#7c3aed"},
     {name:"手配済",     color:"#d97706"},
     {name:"完了",       color:"#16a34a"}
   ],
@@ -461,9 +462,9 @@ function deepMerge(a,b){
 
 /* ---------- state ---------- */
 const store = makeStore();
-const DB = { stores:{}, pamphletTypes:{}, orderSheets:{}, printOrders:{}, config:{}, catalogs:{}, announcements:{} };
-const COLLS = ["stores","pamphletTypes","orderSheets","printOrders","config","catalogs","announcements"];
-const DUMP_COLLS = ["stores","pamphletTypes","config","orderSheets","printOrders","catalogs","announcements"];
+const DB = { stores:{}, pamphletTypes:{}, orderSheets:{}, printOrders:{}, config:{}, catalogs:{}, announcements:{}, feedback:{} };
+const COLLS = ["stores","pamphletTypes","orderSheets","printOrders","config","catalogs","announcements","feedback"];
+const DUMP_COLLS = ["stores","pamphletTypes","config","orderSheets","printOrders","catalogs","announcements","feedback"];
 
 const UI = {
   tab:"order",
@@ -472,6 +473,7 @@ const UI = {
   sumMonth: todayMonth(), poStatusFilter:"", poType:"",
   subMonth: todayMonth(), subOpen: new Set(),
   catBrand:"",
+  tourPreview:false,
   hist:{ from: monthsAgo(5), to: todayMonth(), storeId:"", typeId:"", hideZero:true, sheetMonth: todayMonth(), sheetStore:"" }
 };
 try{ const p=JSON.parse(localStorage.getItem("pamph_prefs")||"{}"); if(p.storeId)UI.storeId=p.storeId; if(p.orderer)UI.orderer=p.orderer; }catch(e){}
@@ -628,9 +630,16 @@ function boot(){
   $("#modal").addEventListener("click", onModalClick);
   $("#tour").addEventListener("click", onTourClick);
   document.addEventListener("keydown", e=>{
-    if(e.key!=="Escape") return;
-    if(!$("#tour").classList.contains("hide")){ endTour(); return; }
-    if(!$("#modal").classList.contains("hide")){ closeModal(); }
+    const tourOpen = !$("#tour").classList.contains("hide");
+    if(e.key==="Escape"){
+      if(tourOpen){ endTour(); return; }
+      if(!$("#modal").classList.contains("hide")){ closeModal(); }
+      return;
+    }
+    if(e.key==="Enter" && tourOpen){
+      const b = $('#tour [data-act="tour-next"]') || $('#tour [data-act="tour-done"]');
+      if(b){ e.preventDefault(); b.click(); }
+    }
   });
 }
 let bannerTimer = null;
@@ -660,23 +669,28 @@ function closeModal(){ const m=$("#modal"); m.className="modal-wrap hide"; m.inn
 /* ---------- 使い方ツアー（スポットライト式）＆ 使い方ガイド ---------- */
 const TOURS = {
   order: [
-    { sel:null, title:"ようこそ", html:'<div class="big">このアプリは、毎月のパンフレット必要数を入力して本社に送るためのものです。画面を見ながら順番に説明します（約1分）。</div>' },
+    { sel:null, title:"ようこそ", html:'<div class="big">このアプリは、毎月のパンフレット必要数を入力して担当者に送るためのものです。画面を見ながら順番に説明します（約1分）。</div>' },
+    { sel:null, title:"PC・スマホ対応", html:'<div class="big">PC・スマートフォンのどちらでも使えます。インストールやログインは不要です。</div>' },
+    { sel:null, title:"ブックマーク推奨", html:'<div class="big">毎月使うので、このページを<b>ブラウザのブックマーク（お気に入り）に登録</b>しておくと便利です。</div>' },
+    { sel:'.notice-box', html:'<b>📢 お知らせ</b><br>担当者からの連絡（新しいパンフレットの案内など）がここに表示されます。出ているときは目を通してください。無いときは表示されません。', optional:true },
     { sel:'[data-act="month"]', html:'<b>① 対象月</b><br>発注する月を選びます。通常はこのままでOK。過去の月を選ぶとその月の内容を確認・修正できます。' },
     { sel:'[data-act="store"]', html:'<b>② 店舗</b><br>自分の店舗を選びます。次回からは自動で表示されます。<br><span class="dim2">※いまは説明用に先頭の店舗が選ばれています。あとで自分の店舗に変えてください。</span>' },
     { sel:'[data-act="orderer"]', html:'<b>③ 担当者名</b><br>入力するご自身の名前を入れます（例：鈴木）。' },
     { sel:'.grid .card', html:'<b>④ 数量を選ぶ</b><br>表紙を見ながら、下のプルダウンで必要数を選びます。入れると<b>赤字</b>に（0はグレー）。「束」の種類は束数で。必要なものだけでOK。' },
-    { sel:'[data-act="submit"]', html:'<b>⑤ 提出する</b><br>入力し終えたらこのボタンを押すと本社に届きます（自動保存されているので押し忘れても内容は残ります）。' },
+    { sel:'[data-act="submit"]', html:'<b>⑤ 提出する</b><br>入力し終えたらこのボタンを押すと担当者に通知メールが届きます（自動保存されているので押し忘れても内容は残ります）。' },
     { sel:'[data-act="submit-none"]', html:'<b>今月は発注なし</b><br>その月に発注が無いときはこちらを押します。押さないと「未提出」の店舗として残ります。' },
     { sel:'[data-act="open-guide"]', html:'<b>使い方ガイド</b><br>分からなくなったら、いつでもここから説明とこのツアーを見られます。' },
+    { sel:'#tabs button[data-tab="feedback"]', html:'<b>意見箱</b><br>このアプリやパンフレットについて、気づいたこと・ご要望があれば「意見箱」タブからお気軽にお寄せください。担当者に届きます。', optional:true },
     { sel:null, title:"準備OK！", html:'<div class="big">説明は以上です。さっそく入力してみましょう。</div>', last:true }
   ],
   submitted: [
-    { sel:null, title:"「提出済み」タブ", html:'<div class="big">各店舗から届いた発注を確認し、印刷して振り分けるための画面です。</div>' },
-    { sel:'[data-act="sub-month"]', html:'<b>対象月</b><br>確認する月を選びます。上部のバッジで「未提出／提出済」の店舗数が分かります。' },
-    { sel:'.sub-row', html:'<b>店舗ごとの行</b><br>「▼」で発注内訳を開けます。赤枠＋「新規」は未確認の提出。<br>「確認」で確認済みに（タブの赤バッジが減る）。「提出取消」で店舗に差し戻し。', optional:true },
-    { sel:'[data-act="sub-printall"]', html:'<b>まとめて印刷</b><br>提出済み全店舗を、店舗ごとにページを分けて連続印刷します（各行の「この店舗を印刷」で1店舗だけも可）。' },
+    { sel:null, title:"「提出済み」タブ", html:'<div class="big">自分の店舗の<b>提出状況</b>と、パンフレットの<b>準備状況</b>を確認する画面です。</div>' },
+    { sel:'[data-act="sub-month"]', html:'<b>対象月</b><br>確認したい月を選びます。' },
+    { sel:'.sub-row', html:'<b>自分の店舗の行を見る</b><br>「▼」を押すと、その月に発注した内容（種類・数量）を確認できます。未提出の店舗はグレーで表示されます。', optional:true },
+    { sel:'.sub-row', html:'<b>状態の表示</b><br>「提出済」→「担当者確認済」→「準備済（日付）」と進みます。<br><b>「準備済」</b>が付いたら、パンフレットの<b>受け取り、または受け取りされる方への手配</b>をお願いします（担当者からの通知メールも届きます）。', optional:true },
+    { sel:null, title:"ボタンについて", html:'<div class="big">「確認」「準備済にする」「提出取消」などのボタンは<b>パンフレット管理担当者用</b>です。店舗の方は押さないでください。<br>発注内容を直したいときは「発注」タブから修正して、もう一度「提出」します。</div>' },
     { sel:'[data-act="open-guide"]', html:'<b>使い方ガイド</b><br>いつでもここから説明とこのツアーを見られます。', optional:true },
-    { sel:null, title:"OK！", html:'<div class="big">未提出の店舗に声かけ →「確認」→ 印刷、の流れで使ってください。</div>', last:true }
+    { sel:null, title:"OK！", html:'<div class="big">「準備済」が付いたら受け取り・手配をお願いします。</div>', last:true }
   ],
   history: [
     { sel:null, title:"「履歴」タブ", html:'<div class="big">種類ごと・月ごとの発注数の推移を確認できる画面です。</div>' },
@@ -691,9 +705,9 @@ const TOURS = {
 const GUIDES = {
   order:
     '<h4>このアプリについて</h4>'+
-    '<ul><li>毎月のパンフレット必要数を入力して本社に送るアプリです</li>'+
+    '<ul><li>毎月のパンフレット必要数を入力して担当者に送るアプリです</li>'+
     '<li>URLをブラウザで開くだけ（PC・スマホ可）。インストール・ログイン不要</li>'+
-    '<li>入力は自動保存。最後に「提出」を押すと本社に届きます</li></ul>'+
+    '<li>入力は自動保存。最後に「提出」を押すと担当者に通知メールが届きます</li></ul>'+
     '<h4>毎月の手順（3ステップ）</h4>'+
     '<ol><li><b>月・店舗・担当者を選ぶ</b></li>'+
     '<li><b>数量を選ぶ</b>：表紙を見ながらプルダウンで。入れると赤字。「束」の種類は束数で。必要なものだけ。特記は「備考」へ</li>'+
@@ -705,14 +719,13 @@ const GUIDES = {
     '<li>右上が「ローカル demo モード」→ 正しいURLを確認</li>'+
     '<li>提出したのに「未提出」→ 「対象月」を確認</li></ul>',
   submitted:
-    '<h4>この画面の役割</h4><p>店舗から届いた発注を確認し、印刷して現物を振り分けます。</p>'+
-    '<h4>手順</h4>'+
-    '<ol><li><b>対象月</b>を選ぶ。ヘッダーの「未提出 N / 12」で未提出店舗を把握し声かけ</li>'+
-    '<li>各行の <b>▼</b> で発注内訳を確認</li>'+
-    '<li>内容を見たら <b>「確認」</b>（タブの赤バッジが減る／「確認取消」で戻せる）</li>'+
-    '<li>修正が必要なら <b>「提出取消」</b> で店舗に差し戻し</li>'+
-    '<li><b>「この店舗を印刷」</b>／<b>「提出分をまとめて印刷」</b> でA4横1枚に出力</li></ol>'+
-    '<h4>印刷のコツ</h4><p>印刷ダイアログで「背景のグラフィック」をオン、用紙は A4・横。</p>',
+    '<h4>この画面でできること（店舗向け）</h4><p>自分の店舗の<b>提出状況</b>と、パンフレットの<b>準備状況</b>を確認します。</p>'+
+    '<h4>見かた</h4>'+
+    '<ul><li><b>対象月</b>を選ぶ</li>'+
+    '<li>自分の店舗の行の <b>▼</b> で、発注した内容（種類・数量）を確認</li>'+
+    '<li>状態の表示：<b>提出済</b> → <b>担当者確認済</b> → <b>準備済（日付）</b> と進みます</li>'+
+    '<li><b>「準備済」</b>が付いたら、パンフレットの<b>受け取り、または受け取りされる方への手配</b>をお願いします（担当者からの通知メールも届きます）</li></ul>'+
+    '<h4>注意</h4><p>「確認」「準備済にする」「提出取消」などのボタンは<b>パンフレット管理担当者用</b>です。店舗の方は押さないでください。発注内容を直したいときは「発注」タブから修正して、もう一度「提出」します。</p>',
   history:
     '<h4>この画面の役割</h4><p>種類ごと・月ごとの発注数の推移を確認します。</p>'+
     '<h4>使い方</h4>'+
@@ -722,28 +735,62 @@ const GUIDES = {
 };
 function guideTitle(tab){ return tab==="submitted" ? "使い方ガイド（提出済み）" : tab==="history" ? "使い方ガイド（履歴）" : "使い方ガイド（発注）"; }
 
-let tourTab = "order", tourIdx = 0;
+let tourTab = "order", tourIdx = 0, tourFromGuide = false, tourReturnState = null;
 function tourDoneKey(tab){ return "pamph_tut_"+tab+"_v1"; }
 function markTourDone(tab){ try{ localStorage.setItem(tourDoneKey(tab||tourTab),"1"); }catch(e){} }
+function syncTabButtons(){ $$("#tabs button").forEach(x=> x.setAttribute("aria-selected", x.dataset.tab===UI.tab ? "true":"false")); }
+function snapshotUI(){
+  return { tab:UI.tab, month:UI.month, storeId:UI.storeId, orderer:UI.orderer,
+    draft:Object.assign({},UI.draft), draftNote:UI.draftNote, draftDirty:UI.draftDirty,
+    subMonth:UI.subMonth, subOpen:new Set(UI.subOpen), sumMonth:UI.sumMonth,
+    poStatusFilter:UI.poStatusFilter, catBrand:UI.catBrand, hist:Object.assign({},UI.hist) };
+}
+function restoreUI(s){
+  if(!s) return;
+  UI.tab=s.tab; UI.month=s.month; UI.storeId=s.storeId; UI.orderer=s.orderer;
+  UI.draft=s.draft; UI.draftNote=s.draftNote; UI.draftDirty=s.draftDirty;
+  UI.subMonth=s.subMonth; UI.subOpen=s.subOpen; UI.sumMonth=s.sumMonth;
+  UI.poStatusFilter=s.poStatusFilter; UI.catBrand=s.catBrand; UI.hist=s.hist;
+  syncTabButtons(); renderAll();
+}
+function resetOrderScreen(){
+  UI.tab="order"; UI.storeId=""; UI.draft={}; UI.draftNote=""; UI.draftDirty=false;
+  syncTabButtons(); renderAll();
+}
 function maybeAutoTour(tab){
   if(!TOURS[tab]) return;
   try{ if(location.search.indexOf("shot")>=0) return; }catch(e){}
   let done=false; try{ done = !!localStorage.getItem(tourDoneKey(tab)); }catch(e){ done=true; }
   if(done) return;
-  setTimeout(function(){ if(UI.tab===tab && $("#tour").classList.contains("hide") && $("#modal").classList.contains("hide")) startTour(tab); }, 450);
+  setTimeout(function(){ if(UI.tab===tab && $("#tour").classList.contains("hide") && $("#modal").classList.contains("hide")) startTour(tab, false); }, 450);
 }
-function startTour(tab){
+function startTour(tab, fromGuide){
   tourTab = TOURS[tab] ? tab : "order";
   tourIdx = 0;
+  tourFromGuide = !!fromGuide;
+  tourReturnState = fromGuide ? snapshotUI() : null;
   closeModal();
-  if(tourTab==="order"){
-    try{ if(!UI.storeId){ const st = activeStores(); if(st.length){ UI.storeId = st[0].id; savePrefs(); loadDraftFor(UI.month, UI.storeId); renderAll(); } } }catch(e){}
-  }
+  UI.tourPreview = true;
+  if(UI.tab !== tourTab){ UI.tab = tourTab; syncTabButtons(); }
+  if(tourTab==="order" && !UI.storeId){ UI.draft={}; UI.draftNote=""; UI.draftDirty=false; }
+  renderAll();
   window.addEventListener("resize", onTourResize);
   showTourStep();
 }
 function onTourResize(){ if(!$("#tour").classList.contains("hide")) showTourStep(); }
-function endTour(){ const t=$("#tour"); t.className="hide"; t.innerHTML=""; window.removeEventListener("resize", onTourResize); markTourDone(tourTab); }
+function closeTourDom(){ const t=$("#tour"); t.className="hide"; t.innerHTML=""; window.removeEventListener("resize", onTourResize); }
+function endTour(mode){
+  closeTourDom();
+  markTourDone(tourTab);
+  UI.tourPreview = false;
+  if(mode==="replay"){ UI.tourPreview = true; tourIdx = 0; renderAll(); window.addEventListener("resize", onTourResize); showTourStep(); return; }
+  if(mode==="back" && tourReturnState){ restoreUI(tourReturnState); tourReturnState = null; return; }
+  if(mode==="reset"){ resetOrderScreen(); return; }
+  // 既定（はじめる / スキップ / ×）
+  if(tourFromGuide && tourReturnState){ restoreUI(tourReturnState); tourReturnState = null; return; }
+  if(tourTab==="order"){ resetOrderScreen(); return; }
+  renderAll();
+}
 function showTourStep(){
   const steps = TOURS[tourTab] || [];
   if(tourIdx<0) tourIdx=0;
@@ -754,14 +801,25 @@ function showTourStep(){
   if(el && el.scrollIntoView){ el.scrollIntoView({block:"center"}); }
   requestAnimationFrame(function(){
     const last = tourIdx === steps.length-1;
+    let btns;
+    if(last){
+      btns = (tourIdx>0 ? '<button class="btn sm" data-act="tour-prev">戻る</button>' : '')+
+        (tourFromGuide
+          ? '<button class="btn sm primary" data-act="tour-back">直前の画面に戻る</button>'+
+            '<button class="btn sm" data-act="tour-reset">最初から始める</button>'+
+            '<button class="btn sm" data-act="tour-replay">もう一度チュートリアルを見る</button>'
+          : '<button class="btn sm primary sp" data-act="tour-done">はじめる</button>');
+    }else{
+      btns = '<button class="btn sm" data-act="tour-skip">スキップ</button>'+
+        (tourIdx>0 ? '<button class="btn sm" data-act="tour-prev">戻る</button>' : '')+
+        '<button class="btn sm primary sp" data-act="tour-next">次へ</button>';
+    }
     const nav =
       '<div class="tour-step">'+(tourIdx+1)+' / '+steps.length+'</div>'+
-      '<div class="tour-text">'+ s.html +'</div>'+
-      '<div class="tour-btns">'+
-        '<button class="btn sm" data-act="tour-skip">'+(last?"閉じる":"スキップ")+'</button>'+
-        (tourIdx>0 ? '<button class="btn sm" data-act="tour-prev">戻る</button>' : '')+
-        '<button class="btn sm primary sp" data-act="'+(last?"tour-done":"tour-next")+'">'+(last?"はじめる":"次へ")+'</button>'+
-      '</div>';
+      '<div class="tour-text">'+ s.html +
+        (tourIdx===0 ? '<div class="dim2" style="margin-top:8px">💡「次へ」ボタン、または <b>Enter キー</b> で進みます。「戻る」で1つ前に戻れます。</div>' : '') +
+      '</div>'+
+      '<div class="tour-btns">'+ btns +'</div>';
     const tour = $("#tour");
     let holeHtml="", tipStyle="", centered = !el;
     if(el){
@@ -770,9 +828,9 @@ function showTourStep(){
       const hx = Math.max(4, r.left-p), hy = Math.max(4, r.top-p);
       holeHtml = '<div class="tour-hole" style="left:'+hx+'px;top:'+hy+'px;width:'+(r.width+p*2)+'px;height:'+(r.height+p*2)+'px"></div>';
       const vw = window.innerWidth, vh = window.innerHeight, tw = 320;
-      if(vw - r.right > tw + 24) tipStyle = 'left:'+(r.right+16)+'px;top:'+Math.max(12, Math.min(r.top, vh-240))+'px';
-      else if(vh - r.bottom > 210) tipStyle = 'left:'+Math.max(12, Math.min(r.left, vw-tw-16))+'px;top:'+(r.bottom+16)+'px';
-      else tipStyle = 'left:'+Math.max(12, Math.min(r.left, vw-tw-16))+'px;top:'+Math.max(12, r.bottom-240)+'px';
+      if(vw - r.right > tw + 24) tipStyle = 'left:'+(r.right+16)+'px;top:'+Math.max(12, Math.min(r.top, vh-260))+'px';
+      else if(vh - r.bottom > 220) tipStyle = 'left:'+Math.max(12, Math.min(r.left, vw-tw-16))+'px;top:'+(r.bottom+16)+'px';
+      else tipStyle = 'left:'+Math.max(12, Math.min(r.left, vw-tw-16))+'px;top:'+Math.max(12, r.bottom-260)+'px';
     }
     tour.className = centered ? "dim" : "";
     tour.innerHTML = holeHtml + '<div class="tour-tip'+(centered?" center":"")+'"'+(centered?"":' style="'+tipStyle+'"')+'>'+nav+'</div>';
@@ -781,38 +839,45 @@ function showTourStep(){
 function onTourClick(e){
   const b = e.target.closest("[data-act]"); if(!b) return;
   const a = b.dataset.act;
-  if(a==="tour-skip" || a==="tour-done"){ endTour(); }
+  if(a==="tour-skip"){ endTour(); }
+  else if(a==="tour-done"){ endTour("done"); }
+  else if(a==="tour-back"){ endTour("back"); }
+  else if(a==="tour-reset"){ endTour("reset"); }
+  else if(a==="tour-replay"){ endTour("replay"); }
   else if(a==="tour-next"){ tourIdx++; showTourStep(); }
   else if(a==="tour-prev"){ tourIdx--; showTourStep(); }
 }
 function openGuide(tab){
   tab = GUIDES[tab] ? tab : "order";
   openModal(guideTitle(tab), GUIDES[tab],
-    '<button class="btn sm" data-act="tut-start" data-tab="'+tab+'">この画面のツアーを見る</button>'+
-    '<button class="btn primary sm sp" data-act="modal-close">閉じる</button>');
+    '<button class="btn primary sm" data-act="tut-start" data-tab="'+tab+'">チュートリアルをはじめる</button>'+
+    '<button class="btn sm sp" data-act="modal-close">閉じる</button>');
 }
 function onModalClick(e){
   if(e.target.id === "modal"){ closeModal(); return; }
   const b = e.target.closest("[data-act]"); if(!b) return;
   const a = b.dataset.act;
   if(a==="modal-close"){ closeModal(); }
-  else if(a==="tut-start"){ startTour(b.dataset.tab || "order"); }
+  else if(a==="tut-start"){ startTour(b.dataset.tab || "order", true); }
 }
 
 /* ---------- メール通知（Google Apps Script 経由） ---------- */
 function notifyCfg(){ return (DB.config.app && DB.config.app.notify) || {}; }
-function sendNotify(kind, subject, body){
+function sendNotifyTo(toAddr, subject, body){
   const n = notifyCfg();
-  if(!n.on || !n.url || !n.token) return;
-  const to = kind==="print" ? (n.printTo||"") : (n.submitTo||"");
-  if(!to) return;
+  if(!n.on || !n.url || !n.token || !toAddr) return false;
   try{
     fetch(n.url, {
       method:"POST", mode:"no-cors", keepalive:true,
       headers:{ "Content-Type":"text/plain;charset=utf-8" },
-      body: JSON.stringify({ token:n.token, to:to, subject:subject, body:body })
+      body: JSON.stringify({ token:n.token, to:toAddr, subject:subject, body:body })
     }).catch(function(){});
-  }catch(e){}
+    return true;
+  }catch(e){ return false; }
+}
+function sendNotify(kind, subject, body){
+  const n = notifyCfg();
+  sendNotifyTo(kind==="print" ? (n.printTo||"") : (n.submitTo||""), subject, body);
 }
 
 /* ---------- 設定タブのパスワード（誤操作防止） ---------- */
@@ -870,6 +935,7 @@ function renderAll(){
   else if(UI.tab==="print")   v.innerHTML = viewPrint();
   else if(UI.tab==="catalog") v.innerHTML = viewCatalog();
   else if(UI.tab==="settings")v.innerHTML = settingsUnlocked() ? viewSettings() : viewSettingsLock();
+  else if(UI.tab==="feedback") v.innerHTML = viewFeedback();
 
   if(fk){
     const t = v.querySelector('[data-fk="'+ (window.CSS && CSS.escape ? CSS.escape(fk) : fk) +'"]');
@@ -904,7 +970,7 @@ function viewOrder(){
   const status = sh ? (sh.status||"下書き") : "未作成";
 
   let body = "";
-  if(!UI.storeId){
+  if(!UI.storeId && !UI.tourPreview){
     body = '<p class="muted">月と店舗を選ぶと発注シートが開きます。過去の月を選べば、その月の発注内容も確認・修正できます。</p>';
   }else{
     const byCat = typesByCat();
@@ -940,7 +1006,8 @@ function viewOrder(){
       body += '<div style="margin-top:12px" class="hist-note">履歴：'+ sh.history.slice(-6).map(h=> esc(fmtDT(h.at))+" "+esc(h.label)).join(" ／ ") +'</div>';
   }
 
-  const anns = activeAnnouncements();
+  let anns = activeAnnouncements();
+  if(UI.tourPreview && !anns.length) anns = [{createdAt:now(), text:"（例）10月号の新しいパンフレット「〇〇」を追加しました。次回の発注からご利用ください。"}];
   const noticeHtml = anns.length
     ? '<section class="panel notice-box"><div class="notice-h">📢 お知らせ</div>'+
       anns.map(a=> '<div class="notice-item"><span class="notice-date">'+esc((a.createdAt||"").slice(0,10))+'</span>'+esc(a.text).replace(/\n/g,"<br>")+'</div>').join("")+
@@ -1004,6 +1071,7 @@ function viewSubmitted(){
     const items = Object.entries(sh.lines||{}).filter(([,v])=>num(v)>0);
     const copies = items.reduce((a,[tid,v])=> a + toCopies(DB.pamphletTypes[tid], v), 0);
     const unconf = !sh.confirmedAt || String(sh.confirmedAt) < String(sh.updatedAt||"");
+    const ready = !!sh.readyAt;
     const open = UI.subOpen.has(s.id);
     let detail = "";
     if(open){
@@ -1020,16 +1088,40 @@ function viewSubmitted(){
       '<span class="s-name">'+esc(s.name)+'</span>'+
       (unconf ? '<span class="pill" style="background:var(--danger)">新規</span>' : '')+
       '<span class="pill" style="background:'+statusColor(sh.status)+'">'+esc(sh.status)+'</span>'+
+      (ready ? '<span class="pill" style="background:var(--ok)">準備済 '+esc((sh.readyAt||"").slice(0,10))+'</span>' : '')+
       '<span class="muted">担当：'+esc(sh.orderer||"—")+'</span>'+
       '<span class="muted">'+items.length+' 品目 ／ 約 '+copies+' 部</span>'+
       '<span class="muted">'+esc(fmtDT(sh.updatedAt))+'</span>'+
       '<span style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">'+
         (unconf ? '<button class="btn sm" data-act="sub-confirm" data-id="'+s.id+'">確認</button>' : '<button class="btn sm" data-act="sub-unconfirm" data-id="'+s.id+'">確認取消</button>')+
+        (ready ? '<button class="btn sm" data-act="sub-unready" data-id="'+s.id+'">準備済を取消</button>'
+               : '<button class="btn sm" data-act="sub-ready" data-id="'+s.id+'">準備済にする</button>')+
         '<button class="btn sm" data-act="sub-unsubmit" data-id="'+s.id+'">提出取消</button>'+
         '<button class="btn sm primary" data-act="sub-print" data-id="'+s.id+'">この店舗を印刷</button>'+
       '</span>'+
       '</div>'+ detail;
   }).join("");
+
+  let demoRow = "";
+  if(UI.tourPreview){
+    demoRow =
+      '<div class="sub-row">'+
+        '<button class="btn sm" data-act="noop">▼</button>'+
+        '<span class="s-name">本社</span>'+
+        '<span class="pill" style="background:'+statusColor("提出済")+'">提出済</span>'+
+        '<span class="pill" style="background:'+statusColor("担当者確認済")+'">担当者確認済</span>'+
+        '<span class="pill" style="background:var(--ok)">準備済 2026-09-05</span>'+
+        '<span class="muted">担当：山田</span>'+
+        '<span class="muted">8 品目 ／ 約 320 部</span>'+
+        '<span style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">'+
+          '<button class="btn sm" data-act="noop">確認取消</button>'+
+          '<button class="btn sm" data-act="noop">準備済を取消</button>'+
+          '<button class="btn sm" data-act="noop">提出取消</button>'+
+          '<button class="btn sm primary" data-act="noop">この店舗を印刷</button>'+
+        '</span>'+
+        '<div class="hist-note" style="width:100%;margin-top:6px">※ チュートリアル用の見本（本社が提出済み・準備済みの状態）です</div>'+
+      '</div>';
+  }
 
   return '<section class="panel">'+
     '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">'+
@@ -1042,7 +1134,8 @@ function viewSubmitted(){
       '<div class="fld" style="min-width:auto"><label>&nbsp;</label><div><span class="badge">提出済 <b>'+done+'</b> / '+stores.length+' 店舗</span></div></div>'+
       '<div class="fld" style="min-width:auto"><label>&nbsp;</label><button class="btn" data-act="sub-printall">提出分をまとめて印刷</button></div>'+
     '</div>'+
-    (list || '<p class="muted">店舗が未登録です。</p>')+
+    demoRow +
+    (list || (demoRow ? '' : '<p class="muted">店舗が未登録です。</p>'))+
     '</section>';
 }
 
@@ -1284,12 +1377,33 @@ function catalogEditSection(){
     '<div style="margin-top:10px"><button class="btn" data-act="c-add">＋ カタログを追加</button></div></section>';
 }
 
+/* ===== 意見箱タブ ===== */
+const FB_GENRES = ["このアプリについて","パンフレットについて","発注の運用について","その他"];
+function viewFeedback(){
+  const stOpts = ['<option value="">選択してください</option>'].concat(
+    activeStores().map(s=> '<option value="'+esc(s.name)+'" '+(s.id===UI.storeId?"selected":"")+'>'+esc(s.name)+'</option>')
+  ).join("");
+  const gOpts = FB_GENRES.map(g=> '<option value="'+esc(g)+'">'+esc(g)+'</option>').join("");
+  return '<section class="panel">'+
+    '<h2>意見箱</h2>'+
+    '<div class="sub">このアプリやパンフレットについて、お気軽にご意見・ご要望をお寄せください。送信すると担当者にメールで届きます。</div>'+
+    '<div style="display:flex;flex-direction:column;gap:12px;max-width:560px">'+
+      '<div class="fld"><label>店舗</label><select id="fb-store" data-fk="fb-store">'+stOpts+'</select></div>'+
+      '<div class="fld"><label>氏名</label><input type="text" id="fb-name" data-fk="fb-name" value="'+esc(UI.orderer||"")+'" placeholder="例）鈴木"></div>'+
+      '<div class="fld"><label>意見ジャンル</label><select id="fb-genre" data-fk="fb-genre">'+gOpts+'</select></div>'+
+      '<div class="fld"><label>ご意見・ご要望</label><textarea id="fb-body" data-fk="fb-body" style="min-height:120px" placeholder="自由にご記入ください"></textarea></div>'+
+      '<div><button class="btn primary" data-act="fb-send">送信する</button></div>'+
+    '</div>'+
+    '</section>';
+}
+
 /* ===== 設定タブ ===== */
 function viewSettings(){
   const c = cfg();
   const storeRows = storesSorted().map((s,i,arr)=>
     '<div class="rowline">'+
-      '<input class="grow" type="text" data-act="s-name" data-id="'+s.id+'" data-fk="sn-'+s.id+'" value="'+esc(s.name)+'">'+
+      '<input type="text" data-act="s-name" data-id="'+s.id+'" data-fk="sn-'+s.id+'" value="'+esc(s.name)+'" style="width:120px">'+
+      '<input class="grow" type="email" data-act="s-email" data-id="'+s.id+'" data-fk="se-'+s.id+'" value="'+esc(s.email||"")+'" placeholder="担当者メール（「準備済」の通知先／カンマ区切りで複数可）">'+
       '<label class="muted" style="display:flex;gap:5px;align-items:center"><input type="checkbox" data-act="s-active" data-id="'+s.id+'" '+(s.active!==false?"checked":"")+'>有効</label>'+
       '<button class="btn sm" data-act="s-up" data-id="'+s.id+'" '+(i===0?"disabled":"")+'>↑</button>'+
       '<button class="btn sm" data-act="s-down" data-id="'+s.id+'" '+(i===arr.length-1?"disabled":"")+'>↓</button>'+
@@ -1357,6 +1471,8 @@ function viewSettings(){
       '<input class="grow" type="email" data-act="n-submitto" data-fk="n-submitto" value="'+esc(nc.submitTo||"")+'" placeholder="stock@example.com（カンマ区切りで複数可）"></div>'+
     '<div class="rowline"><span class="muted" style="min-width:150px">印刷発注の通知先（印刷発注担当）</span>'+
       '<input class="grow" type="email" data-act="n-printto" data-fk="n-printto" value="'+esc(nc.printTo||"")+'" placeholder="print@example.com（カンマ区切りで複数可）"></div>'+
+    '<div class="rowline"><span class="muted" style="min-width:150px">意見箱の通知先</span>'+
+      '<input class="grow" type="email" data-act="n-feedbackto" data-fk="n-feedbackto" value="'+esc(nc.feedbackTo||"")+'" placeholder="未入力なら「提出の通知先」に届きます（カンマ区切りで複数可）"></div>'+
     '<div style="margin-top:10px"><button class="btn" data-act="n-test">テスト送信</button> '+
       '<span class="muted">「提出の通知先」宛にテストメールを送ります。</span></div></section>';
 
@@ -1377,7 +1493,7 @@ function viewSettings(){
     (annRows || '<p class="muted">お知らせはありません。</p>')+
     '<div style="margin-top:10px"><button class="btn" data-act="an-add">＋ お知らせを追加</button></div></section>'+
 
-    '<section class="panel"><h2>店舗</h2><div class="sub">発注を行う店舗の一覧。</div>'+storeRows+
+    '<section class="panel"><h2>店舗</h2><div class="sub">発注を行う店舗の一覧。「担当者メール」は、提出済みタブで「準備済」を押したときにその店舗へ通知メールを送る宛先です（メール通知を有効にしている場合）。</div>'+storeRows+
     '<div style="margin-top:10px"><button class="btn" data-act="s-add">＋ 店舗を追加</button></div></section>'+
 
     '<section class="panel"><h2>パンフレット種類</h2><div class="sub">表紙画像は選択すると自動縮小して保存。単位を「束」にすると発注は束数入力になり、目安部数で部数換算します（ネット印刷の1束30〜50部に対応）。</div>'+
@@ -1460,6 +1576,7 @@ async function onChange(e){
 
   /* 設定：店舗 */
   if(a==="s-name"){ await store.merge("stores", id, {name:t.value}); return; }
+  if(a==="s-email"){ await store.merge("stores", id, {email:t.value.trim()}); return; }
   if(a==="s-active"){ await store.merge("stores", id, {active:t.checked}); return; }
 
   /* 設定：種類 */
@@ -1477,6 +1594,7 @@ async function onChange(e){
   if(a==="n-token"){ await store.merge("config","app",{notify:{token:t.value.trim()}, updatedAt:now()}); return; }
   if(a==="n-submitto"){ await store.merge("config","app",{notify:{submitTo:t.value.trim()}, updatedAt:now()}); return; }
   if(a==="n-printto"){ await store.merge("config","app",{notify:{printTo:t.value.trim()}, updatedAt:now()}); return; }
+  if(a==="n-feedbackto"){ await store.merge("config","app",{notify:{feedbackTo:t.value.trim()}, updatedAt:now()}); return; }
   if(a==="t-img"){
     const f=t.files&&t.files[0]; if(!f) return;
     try{ const d=await fileToThumb(f); await store.merge("pamphletTypes", id, {coverImage:d, updatedAt:now()}); renderAll(); }
@@ -1509,6 +1627,22 @@ async function onClick(e){
 
   /* 発注 */
   if(a==="open-guide"){ openGuide(UI.tab); return; }
+  if(a==="fb-send"){
+    const st = ($("#fb-store")||{}).value||"";
+    const nm = (($("#fb-name")||{}).value||"").trim();
+    const gn = ($("#fb-genre")||{}).value||"";
+    const bd = (($("#fb-body")||{}).value||"").trim();
+    if(!bd){ showBanner("ご意見の内容を入力してください。","err"); return; }
+    const rec = { store:st, name:nm, genre:gn, text:bd, createdAt:now() };
+    await store.put("feedback", uid(), rec);
+    const n = notifyCfg();
+    const sent = sendNotifyTo(n.feedbackTo || n.submitTo || "",
+      "【意見箱】"+(gn||"")+"（"+(st||"店舗未選択")+"）",
+      "店舗："+(st||"（未選択）")+"\n氏名："+(nm||"（未記入）")+"\nジャンル："+(gn||"")+"\n日時："+fmtDT(rec.createdAt)+"\n\n"+bd+"\n\nアプリ：https://inoue-group.github.io/pamphlet/");
+    if(UI.orderer!==nm && nm){ UI.orderer = nm; savePrefs(); }
+    showBanner("送信しました。ご意見ありがとうございます。"+(sent?"":"（メール通知が未設定のため記録のみ保存しました）"),"info");
+    renderAll(); return;
+  }
   if(a==="save"){ await flushSave(false); renderAll(); return; }
   if(a==="submit-none"){
     if(!UI.storeId){ showBanner("店舗を選択してください。","err"); return; }
@@ -1536,6 +1670,18 @@ async function onClick(e){
   if(a==="sub-printall"){ doPrint(activeStores().map(s=>s.id), UI.subMonth); return; }
   if(a==="sub-confirm"){ await store.merge("orderSheets", sheetId(UI.subMonth, id), {confirmedAt: now()}); renderAll(); return; }
   if(a==="sub-unconfirm"){ await store.merge("orderSheets", sheetId(UI.subMonth, id), {confirmedAt: ""}); renderAll(); return; }
+  if(a==="sub-ready"){
+    const sid = sheetId(UI.subMonth, id);
+    if(!DB.orderSheets[sid]) return;
+    await store.merge("orderSheets", sid, {readyAt: now()});
+    const st = DB.stores[id]||{};
+    const sent = sendNotifyTo(st.email||"",
+      "【準備完了】"+(st.name||"")+" "+UI.subMonth+" 分パンフレット",
+      (st.name||"")+" "+UI.subMonth+" 分のパンフレットの準備ができました。\n受け取り、または受け取りされる方への手配をお願いします。\n\nアプリ：https://inoue-group.github.io/pamphlet/");
+    showBanner((st.name||"")+" を「準備済」にしました。"+(sent?"（店舗へ通知メールを送信）":"（この店舗のメール未登録のため通知は送っていません）"),"info");
+    renderAll(); return;
+  }
+  if(a==="sub-unready"){ await store.merge("orderSheets", sheetId(UI.subMonth, id), {readyAt: ""}); renderAll(); return; }
   if(a==="po-confirm"){ await store.merge("printOrders", id, {confirmedAt: now()}); renderAll(); return; }
   if(a==="po-unconfirm"){ await store.merge("printOrders", id, {confirmedAt: ""}); renderAll(); return; }
   if(a==="sub-unsubmit"){
