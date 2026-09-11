@@ -122,6 +122,10 @@ window.PAMPH_FIREBASE_CONFIG = {
   .notice-item{font-size:13px; padding:5px 0; border-top:1px dashed color-mix(in srgb,#F39800 35%,var(--line))}
   .notice-item:first-of-type{border-top:0}
   .notice-date{display:inline-block; font-size:11px; font-weight:700; color:var(--ink-soft); margin-right:8px}
+  .brand-legend{padding:5px 10px; background:var(--panel-2); border:1px solid var(--line); border-radius:9px; font-size:11px; white-space:nowrap}
+  .brand-legend ul{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:1px}
+  .brand-legend li{display:flex; align-items:center; gap:5px}
+  .lg-dot{width:10px; height:10px; border-radius:50%; flex:none; border:1px solid rgba(0,0,0,.25); box-shadow:0 0 0 2px rgba(255,255,255,.8)}
   .thumb{width:100%; aspect-ratio:3/4; border-radius:8px; background:var(--chip); object-fit:contain; display:block}
   .thumb.ph{display:grid; place-items:center; color:var(--ink-soft); font-size:11px; text-align:center; padding:6px}
   .card .nm{font-size:12px; font-weight:700; line-height:1.35; min-height:2.7em}
@@ -474,6 +478,7 @@ const UI = {
   subMonth: todayMonth(), subOpen: new Set(),
   catBrand:"",
   tourPreview:false,
+  pendingConfirm:null,
   hist:{ from: monthsAgo(5), to: todayMonth(), storeId:"", typeId:"", hideZero:true, sheetMonth: todayMonth(), sheetStore:"" }
 };
 try{ const p=JSON.parse(localStorage.getItem("pamph_prefs")||"{}"); if(p.storeId)UI.storeId=p.storeId; if(p.orderer)UI.orderer=p.orderer; }catch(e){}
@@ -673,6 +678,7 @@ const TOURS = {
     { sel:null, title:"PC・スマホ対応", html:'<div class="big">PC・スマートフォンのどちらでも使えます。インストールやログインは不要です。</div>' },
     { sel:null, title:"ブックマーク推奨", html:'<div class="big">毎月使うので、このページを<b>ブラウザのブックマーク（お気に入り）に登録</b>しておくと便利です。</div>' },
     { sel:'.notice-box', html:'<b>📢 お知らせ</b><br>担当者からの連絡（新しいパンフレットの案内など）がここに表示されます。出ているときは目を通してください。無いときは表示されません。', optional:true },
+    { sel:'.brand-legend', html:'<b>ブランドの見分け方</b><br>表紙の左上に付いている丸の色で、パンフレットのブランドが分かります。<br>オレンジ＝彩ハウス、緑＝F.PRODUCTS（色が付いていないものは共通）。' },
     { sel:'[data-act="month"]', html:'<b>① 対象月</b><br>発注する月を選びます。通常はこのままでOK。過去の月を選ぶとその月の内容を確認・修正できます。' },
     { sel:'[data-act="store"]', html:'<b>② 店舗</b><br>自分の店舗を選びます。次回からは自動で表示されます。<br><span class="dim2">※いまは説明用に先頭の店舗が選ばれています。あとで自分の店舗に変えてください。</span>' },
     { sel:'[data-act="orderer"]', html:'<b>③ 担当者名</b><br>入力するご自身の名前を入れます（例：鈴木）。' },
@@ -709,6 +715,9 @@ const GUIDES = {
     '<ul><li>毎月のパンフレット必要数を入力して担当者に送るアプリです</li>'+
     '<li>URLをブラウザで開くだけ（PC・スマホ可）。インストール・ログイン不要</li>'+
     '<li>入力は自動保存。最後に「提出」を押すと担当者に通知メールが届きます</li></ul>'+
+    '<h4>ブランドの見分け方</h4>'+
+    '<p>表紙左上の丸の色でブランドが分かります。</p>'+
+    '<ul><li>オレンジの〇：彩ハウス</li><li>緑色の〇：F.PRODUCTS</li><li>色が付いていない〇：共通</li></ul>'+
     '<h4>毎月の手順（3ステップ）</h4>'+
     '<ol><li><b>月・店舗・担当者を選ぶ</b></li>'+
     '<li><b>数量を選ぶ</b>：表紙を見ながらプルダウンで。入れると赤字。「束」の種類は束数で。必要なものだけ。特記は「備考」へ</li>'+
@@ -855,12 +864,23 @@ function openGuide(tab){
     '<button class="btn primary sm" data-act="tut-start" data-tab="'+tab+'">チュートリアルをはじめる</button>'+
     '<button class="btn sm sp" data-act="modal-close">閉じる</button>');
 }
-function onModalClick(e){
+async function onModalClick(e){
   if(e.target.id === "modal"){ closeModal(); return; }
   const b = e.target.closest("[data-act]"); if(!b) return;
   const a = b.dataset.act;
   if(a==="modal-close"){ closeModal(); }
   else if(a==="tut-start"){ startTour(b.dataset.tab || "order", true); }
+  else if(a==="pw-confirm-run"){
+    const v = (document.getElementById("pw-confirm-input")||{}).value||"";
+    if(hashStr(v) !== settingsPassHash()){ showBanner("パスワードが違います。","err"); return; }
+    try{ sessionStorage.setItem("pamph_set_ok", settingsPassHash()); }catch(e2){}
+    const pending = UI.pendingConfirm; UI.pendingConfirm = null;
+    closeModal();
+    if(pending){
+      if(pending.kind==="sub-confirm") await runSubConfirm(pending.id);
+      else if(pending.kind==="sub-ready") await runSubReady(pending.id);
+    }
+  }
 }
 
 /* ---------- メール通知（Google Apps Script 経由） ---------- */
@@ -890,13 +910,36 @@ function settingsUnlocked(){
   if(!settingsPassHash()) return true;
   try{ return sessionStorage.getItem("pamph_set_ok") === settingsPassHash(); }catch(e){ return false; }
 }
-function viewSettingsLock(){
-  return '<section class="panel"><h2>設定タブはパスワードで保護されています</h2>'+
-    '<div class="sub">管理担当者にパスワードを確認してください。</div>'+
+function viewSettingsLock(label){
+  return '<section class="panel"><h2>'+esc(label||"このタブ")+'はパスワードで保護されています</h2>'+
+    '<div class="sub">管理担当者にパスワードを確認してください。設定タブと共通のパスワードです。</div>'+
     '<div class="row">'+
       '<div class="fld"><label>パスワード</label><input type="password" id="set-pw" data-fk="set-pw"></div>'+
       '<div class="fld" style="min-width:auto"><label>&nbsp;</label><button class="btn primary" data-act="settings-unlock">解除</button></div>'+
     '</div></section>';
+}
+async function runSubConfirm(id){
+  await store.merge("orderSheets", sheetId(UI.subMonth, id), {confirmedAt: now()});
+  renderAll();
+}
+async function runSubReady(id){
+  const sid = sheetId(UI.subMonth, id);
+  if(!DB.orderSheets[sid]) return;
+  await store.merge("orderSheets", sid, {readyAt: now()});
+  const st = DB.stores[id]||{};
+  const sent = sendNotifyTo(st.email||"",
+    "【準備完了】"+(st.name||"")+" "+UI.subMonth+" 分パンフレット",
+    (st.name||"")+" "+UI.subMonth+" 分のパンフレットの準備ができました。\n受け取り、または受け取りされる方への手配をお願いします。\n\nアプリ：https://inoue-group.github.io/pamphlet/");
+  showBanner((st.name||"")+" を「準備済」にしました。"+(sent?"（店舗へ通知メールを送信）":"（この店舗のメール未登録のため通知は送っていません）"),"info");
+  renderAll();
+}
+function askPwThen(kind, id){
+  UI.pendingConfirm = {kind, id};
+  openModal("パスワード確認",
+    '<div class="sub" style="margin-bottom:8px">誤操作防止のため、パスワードを入力してください。</div>'+
+    '<div class="fld"><label>パスワード</label><input type="password" id="pw-confirm-input" data-fk="pw-confirm-input"></div>',
+    '<button class="btn" data-act="modal-close">キャンセル</button>'+
+    '<button class="btn primary sp" data-act="pw-confirm-run">確認して実行</button>');
 }
 
 /* ---------- render ---------- */
@@ -935,9 +978,9 @@ function renderAll(){
   else if(UI.tab==="submitted")v.innerHTML = viewSubmitted();
   else if(UI.tab==="history") v.innerHTML = viewHistory();
   else if(UI.tab==="summary") v.innerHTML = viewSummary();
-  else if(UI.tab==="print")   v.innerHTML = viewPrint();
+  else if(UI.tab==="print")   v.innerHTML = settingsUnlocked() ? viewPrint() : viewSettingsLock("印刷発注タブ");
   else if(UI.tab==="catalog") v.innerHTML = viewCatalog();
-  else if(UI.tab==="settings")v.innerHTML = settingsUnlocked() ? viewSettings() : viewSettingsLock();
+  else if(UI.tab==="settings")v.innerHTML = settingsUnlocked() ? viewSettings() : viewSettingsLock("設定タブ");
   else if(UI.tab==="feedback") v.innerHTML = viewFeedback();
 
   if(fk){
@@ -1020,7 +1063,16 @@ function viewOrder(){
   return noticeHtml + '<section class="panel">'+
     '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">'+
       '<div><h2>月次発注シート</h2><div class="sub">各店舗が対象月のパンフレット必要数をプルダウンで入力し、提出します。「束」の種類は束数で入力（約◯部を併記）。</div></div>'+
-      '<button class="btn" data-act="open-guide">📖 使い方ガイド</button>'+
+      '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">'+
+        '<button class="btn" data-act="open-guide">📖 使い方ガイド</button>'+
+        '<div class="brand-legend">'+
+          '<ul>'+
+            '<li><span class="lg-dot" style="background:'+brandColor("none")+'"></span>：共通</li>'+
+            '<li><span class="lg-dot" style="background:'+brandColor("sai")+'"></span>：彩ハウス</li>'+
+            '<li><span class="lg-dot" style="background:'+brandColor("fp")+'"></span>：F.PRODUCTS</li>'+
+          '</ul>'+
+        '</div>'+
+      '</div>'+
     '</div>'+
     '<div class="row">'+
       '<div class="fld"><label>対象月</label><input type="month" data-act="month" value="'+esc(UI.month)+'"></div>'+
@@ -1079,9 +1131,9 @@ function viewSubmitted(){
     let detail = "";
     if(open){
       const trs = items
-        .map(([tid,v])=>{ const t=DB.pamphletTypes[tid]||{}; return {n:t.name||tid, v:num(v), u:unitOf(t), c:toCopies(t,v)}; })
+        .map(([tid,v])=>{ const t=DB.pamphletTypes[tid]||{}; return {n:t.name||tid, img:t.coverImage||"", v:num(v), u:unitOf(t), c:toCopies(t,v)}; })
         .sort((a,b)=> b.c-a.c)
-        .map(x=> '<tr><td>'+esc(x.n)+'</td><td class="num">'+x.v+' '+x.u+'</td><td class="num">'+x.c+'</td></tr>').join("");
+        .map(x=> '<tr><td class="name-cell">'+(x.img?'<img class="mini" src="'+x.img+'" alt="">':'<span class="mini"></span>')+'<span>'+esc(x.n)+'</span></td><td class="num">'+x.v+' '+x.u+'</td><td class="num">'+x.c+'</td></tr>').join("");
       detail = '<div class="sub-detail"><div class="tbl-wrap"><table><thead><tr><th>種類</th><th class="num">発注数</th><th class="num">部換算</th></tr></thead><tbody>'+
         (trs || '<tr><td colspan="3" class="muted">数量入力なし</td></tr>')+
         '</tbody></table></div>'+ (sh.note? '<div class="hist-note" style="margin-top:6px">備考：'+esc(sh.note)+'</div>':'') +'</div>';
@@ -1221,12 +1273,12 @@ function viewHistory(){
     if(!dsh) detail = '<p class="muted">'+esc(h.sheetMonth)+'／'+esc((DB.stores[h.sheetStore]||{}).name||"")+' の発注は記録されていません。</p>';
     else{
       const lines = Object.entries(dsh.lines||{}).filter(([,v])=>num(v)>0)
-        .map(([tid,v])=>{ const t=DB.pamphletTypes[tid]||{}; return {name:t.name||tid, v:num(v), u:unitOf(t), c:toCopies(t,v)}; })
+        .map(([tid,v])=>{ const t=DB.pamphletTypes[tid]||{}; return {name:t.name||tid, img:t.coverImage||"", v:num(v), u:unitOf(t), c:toCopies(t,v)}; })
         .sort((a,b)=> b.c-a.c);
       detail =
         '<div class="muted" style="margin-bottom:6px">状態：<span class="pill" style="background:'+statusColor(dsh.status)+'">'+esc(dsh.status||"")+'</span> ／ 担当：'+esc(dsh.orderer||"—")+' ／ 更新：'+esc(fmtDT(dsh.updatedAt))+'</div>'+
         '<div class="tbl-wrap"><table><thead><tr><th>種類</th><th class="num">発注数</th><th class="num">部換算</th></tr></thead><tbody>'+
-        (lines.length? lines.map(l=> '<tr><td>'+esc(l.name)+'</td><td class="num">'+l.v+' '+l.u+'</td><td class="num">'+l.c+'</td></tr>').join("")
+        (lines.length? lines.map(l=> '<tr><td class="name-cell">'+(l.img?'<img class="mini" src="'+l.img+'" alt="">':'<span class="mini"></span>')+'<span>'+esc(l.name)+'</span></td><td class="num">'+l.v+' '+l.u+'</td><td class="num">'+l.c+'</td></tr>').join("")
                      : '<tr><td colspan="3" class="muted">数量入力なし</td></tr>')+
         '<tr><td><b>合計（部換算）</b></td><td></td><td class="num"><b>'+lines.reduce((a,b)=>a+b.c,0)+'</b></td></tr>'+
         '</tbody></table></div>'+
@@ -1480,8 +1532,8 @@ function viewSettings(){
       '<span class="muted">「提出の通知先」宛にテストメールを送ります。</span></div></section>';
 
   const hasPw = !!settingsPassHash();
-  const pwSection = '<section class="panel"><h2>設定タブのパスワード</h2>'+
-    '<div class="sub">設定するとこのタブを開くときにパスワードを求めます（同じブラウザでは一度入力すれば、閉じるまで再入力不要）。'+
+  const pwSection = '<section class="panel"><h2>設定タブ・印刷発注タブのパスワード</h2>'+
+    '<div class="sub">設定すると、<b>「設定」タブと「印刷発注」タブ</b>を開くとき、また<b>「提出済み」タブの「確認」「準備済にする」</b>を押すときに、このパスワードを求めます（共通の1つのパスワードです。同じブラウザでは一度入力すれば、閉じるまで再入力不要）。'+
     'データそのものの保護ではなく、店舗の人などの誤操作を防ぐためのものです。</div>'+
     '<div class="row">'+
       '<div class="fld"><label>新しいパスワード（3文字以上）</label><input type="password" id="set-newpw" data-fk="set-newpw"></div>'+
@@ -1671,18 +1723,14 @@ async function onClick(e){
   if(a==="sub-toggle"){ if(UI.subOpen.has(id)) UI.subOpen.delete(id); else UI.subOpen.add(id); renderAll(); return; }
   if(a==="sub-print"){ doPrint([id], UI.subMonth); return; }
   if(a==="sub-printall"){ doPrint(activeStores().map(s=>s.id), UI.subMonth); return; }
-  if(a==="sub-confirm"){ await store.merge("orderSheets", sheetId(UI.subMonth, id), {confirmedAt: now()}); renderAll(); return; }
+  if(a==="sub-confirm"){
+    if(!settingsUnlocked()){ askPwThen("sub-confirm", id); return; }
+    await runSubConfirm(id); return;
+  }
   if(a==="sub-unconfirm"){ await store.merge("orderSheets", sheetId(UI.subMonth, id), {confirmedAt: ""}); renderAll(); return; }
   if(a==="sub-ready"){
-    const sid = sheetId(UI.subMonth, id);
-    if(!DB.orderSheets[sid]) return;
-    await store.merge("orderSheets", sid, {readyAt: now()});
-    const st = DB.stores[id]||{};
-    const sent = sendNotifyTo(st.email||"",
-      "【準備完了】"+(st.name||"")+" "+UI.subMonth+" 分パンフレット",
-      (st.name||"")+" "+UI.subMonth+" 分のパンフレットの準備ができました。\n受け取り、または受け取りされる方への手配をお願いします。\n\nアプリ：https://inoue-group.github.io/pamphlet/");
-    showBanner((st.name||"")+" を「準備済」にしました。"+(sent?"（店舗へ通知メールを送信）":"（この店舗のメール未登録のため通知は送っていません）"),"info");
-    renderAll(); return;
+    if(!settingsUnlocked()){ askPwThen("sub-ready", id); return; }
+    await runSubReady(id); return;
   }
   if(a==="sub-unready"){ await store.merge("orderSheets", sheetId(UI.subMonth, id), {readyAt: ""}); renderAll(); return; }
   if(a==="po-confirm"){ await store.merge("printOrders", id, {confirmedAt: now()}); renderAll(); return; }
@@ -1751,7 +1799,7 @@ async function onClick(e){
     const v = (document.getElementById("set-pw")||{}).value||"";
     if(hashStr(v) === settingsPassHash()){
       try{ sessionStorage.setItem("pamph_set_ok", settingsPassHash()); }catch(e){}
-      showBanner("設定タブを解除しました。","info"); renderAll();
+      showBanner("ロックを解除しました。","info"); renderAll();
     }else{ showBanner("パスワードが違います。","err"); }
     return;
   }
