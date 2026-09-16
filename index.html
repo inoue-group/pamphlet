@@ -2321,20 +2321,30 @@ const FAQ = [
   { kw:["印刷","色","出ない","背景"], a:"印刷時に色（見出し帯など）が出ない場合は、印刷ダイアログで「背景のグラフィック」をオンにしてください。用紙はA4横がおすすめです。" },
   { kw:["エクスポート","バックアップ","インポート"], a:"設定タブの「データのバックアップ」から、全データをJSONで書き出し・読み込みできます。定期的なバックアップにご利用ください。" }
 ];
+function splitTokens(q){
+  return String(q||"").split(/[\s　、,／\/]+/).map(s=>s.trim()).filter(s=>s.length>=1);
+}
+function nameMatches(nm, q, tokens){
+  if(!nm) return false;
+  if(q.indexOf(nm) >= 0) return true;              // クエリ全体にフル名称が含まれる
+  return tokens.some(tok=> tok.length>=2 && nm.indexOf(tok)>=0); // 「熊谷」で「熊谷店」に一致、のような部分一致
+}
 function findEntity(list, nameFn, q){
   let best = null, bestLen = 0;
+  const tokens = splitTokens(q);
   list.forEach(item=>{
     const nm = nameFn(item);
-    if(nm && q.indexOf(nm) >= 0 && nm.length > bestLen){ best = item; bestLen = nm.length; }
+    if(nm && nameMatches(nm, q, tokens) && nm.length > bestLen){ best = item; bestLen = nm.length; }
   });
   return best;
 }
 function findTypeEntity(q){
   let best = null, bestLen = 0;
+  const tokens = splitTokens(q);
   Object.values(DB.pamphletTypes).forEach(t=>{
     const candidates = [t.name].concat(String(t.searchAliases||"").split(/[,、／\/\n]/).map(s=>s.trim()).filter(Boolean));
     candidates.forEach(nm=>{
-      if(nm && q.indexOf(nm) >= 0 && nm.length > bestLen){ best = t; bestLen = nm.length; }
+      if(nm && nameMatches(nm, q, tokens) && nm.length > bestLen){ best = t; bestLen = nm.length; }
     });
   });
   return best;
@@ -2373,7 +2383,7 @@ function chatAnswer(qRaw){
   const store = findEntity(activeStores(), s=>s.name, q);
   const catalog = findEntity(Object.values(DB.catalogs), c=>c.title, q);
   const monthQ = parseMonthFromQuery(q);
-  const PW_MSG = "ご質問の内容はパスワードで保護されています。ご質問がある場合は、管理担当者（岡田）へご連絡ください。";
+  const PW_MSG = "こちらの情報は管理者のみ閲覧可能です。ご質問は深谷店管理者(岡田)へお問い合わせください。";
 
   if(type && /在庫/.test(q) && /(履歴|理由|いつ|経緯)/.test(q)){
     if(!settingsUnlocked()) return PW_MSG;
@@ -2409,6 +2419,14 @@ function chatAnswer(qRaw){
   if(catalog && /(カタログ|url|リンク|開く)/i.test(q) || (catalog && !type && !store)){
     const u = catalog.url||"";
     return "「"+esc(catalog.title)+"」のURL：<br>"+(u?'<a href="'+esc(u)+'" target="_blank" rel="noopener">'+esc(u)+'</a>':"（URL未登録です）");
+  }
+  if(type && store && /(発注|提出|状況|状態)/.test(q)){
+    const m = monthQ || UI.month || todayMonth();
+    const sh = DB.orderSheets[sheetId(m, store.id)];
+    if(!isSubmitted(sh)) return esc(store.name)+"の"+esc(m)+"分は、まだ提出されていません。";
+    const v = num((sh.lines||{})[type.id]);
+    if(!v) return esc(store.name)+"の"+esc(m)+"分に「"+esc(type.name)+"」の発注はありません。";
+    return esc(store.name)+"の"+esc(m)+"分「"+esc(type.name)+"」：<b>"+v+" "+unitOf(type)+"</b>（約"+toCopies(type,v)+"部）";
   }
   if(store && /(発注|提出|状況|状態)/.test(q)){
     const m = monthQ || UI.month || todayMonth();
