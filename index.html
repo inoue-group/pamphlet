@@ -128,6 +128,10 @@ window.PAMPH_FIREBASE_CONFIG = {
   .lg-dot{width:10px; height:10px; border-radius:50%; flex:none; border:1px solid rgba(0,0,0,.25); box-shadow:0 0 0 2px rgba(255,255,255,.8)}
   .thumb{width:100%; aspect-ratio:3/4; border-radius:8px; background:var(--chip); object-fit:contain; display:block}
   .thumb.ph{display:grid; place-items:center; color:var(--ink-soft); font-size:11px; text-align:center; padding:6px}
+  .thumb-btn{display:block; width:100%; border:0; padding:0; margin:0; background:none; cursor:pointer}
+  .thumb-btn:hover .thumb{outline:2px solid var(--accent); outline-offset:1px}
+  .stock-row{display:flex; align-items:center; gap:6px; justify-content:center; flex-wrap:wrap}
+  .stock-row input{width:92px; text-align:center; font-weight:700}
   .card .nm{font-size:12px; font-weight:700; line-height:1.35; min-height:2.7em}
   .card select{width:100%; text-align:center; font-weight:700; color:var(--ink-soft)}
   .card select.qset{color:#d80026}
@@ -254,6 +258,7 @@ window.PAMPH_FIREBASE_CONFIG = {
     <button data-tab="submitted" aria-selected="false">提出済み</button>
     <button data-tab="history"   aria-selected="false">履歴</button>
     <button data-tab="summary"   aria-selected="false">集計</button>
+    <button data-tab="stock"     aria-selected="false">在庫管理</button>
     <button data-tab="print"     aria-selected="false">印刷発注</button>
     <button data-tab="catalog"   aria-selected="false">WEBカタログ</button>
     <button data-tab="settings"  aria-selected="false">設定</button>
@@ -466,9 +471,9 @@ function deepMerge(a,b){
 
 /* ---------- state ---------- */
 const store = makeStore();
-const DB = { stores:{}, pamphletTypes:{}, orderSheets:{}, printOrders:{}, config:{}, catalogs:{}, announcements:{}, feedback:{} };
-const COLLS = ["stores","pamphletTypes","orderSheets","printOrders","config","catalogs","announcements","feedback"];
-const DUMP_COLLS = ["stores","pamphletTypes","config","orderSheets","printOrders","catalogs","announcements","feedback"];
+const DB = { stores:{}, pamphletTypes:{}, orderSheets:{}, printOrders:{}, config:{}, catalogs:{}, announcements:{}, feedback:{}, stockLogs:{} };
+const COLLS = ["stores","pamphletTypes","orderSheets","printOrders","config","catalogs","announcements","feedback","stockLogs"];
+const DUMP_COLLS = ["stores","pamphletTypes","config","orderSheets","printOrders","catalogs","announcements","feedback","stockLogs"];
 
 const UI = {
   tab:"order",
@@ -610,7 +615,7 @@ function boot(){
     showBanner("ローカル demo モードで動作中：データはこの端末にのみ保存されます。全店舗で共有するには「設定 → クラウド共有」の手順を実施してください。","info");
 
   try{
-    const vt = ["order","submitted","history","summary","print","catalog","settings"];
+    const vt = ["order","submitted","history","summary","stock","print","catalog","settings","feedback"];
     const hv = decodeURIComponent((location.hash||"").slice(1));
     if(vt.indexOf(hv)>=0){ UI.tab = hv; $$("#tabs button").forEach(x=> x.setAttribute("aria-selected", x.dataset.tab===hv ? "true":"false")); }
   }catch(e){}
@@ -644,6 +649,12 @@ function boot(){
     if(e.key==="Enter" && tourOpen){
       const b = $('#tour [data-act="tour-next"]') || $('#tour [data-act="tour-done"]');
       if(b){ e.preventDefault(); b.click(); }
+      return;
+    }
+    if(e.key==="Enter"){
+      const ae = document.activeElement;
+      if(ae && ae.id==="set-pw"){ const b=$('[data-act="settings-unlock"]'); if(b){ e.preventDefault(); b.click(); } return; }
+      if(ae && ae.id==="pw-confirm-input"){ const b=$('[data-act="pw-confirm-run"]'); if(b){ e.preventDefault(); b.click(); } return; }
     }
   });
 }
@@ -707,6 +718,15 @@ const TOURS = {
     { sel:'.tbl-wrap', html:'<b>ピボット表</b><br>行＝種類、列＝月、セル＝発注数。行合計は種類の単位のまま、月合計・総合計は「部換算」で表示されます。下の「回ごとの提出内容」で当時の明細も見られます。' },
     { sel:'[data-act="open-guide"]', html:'<b>使い方ガイド</b><br>いつでもここから説明とこのツアーを見られます。', optional:true },
     { sel:null, title:"OK！", html:'<div class="big">次回の印刷数量を決める目安に使ってください。</div>', last:true }
+  ],
+  stock: [
+    { sel:null, title:"「在庫管理」タブ", html:'<div class="big">パンフレットの<b>現在の在庫部数</b>を管理する画面です（パンフレット管理担当者用・パスワード保護あり）。</div>' },
+    { sel:'.grid .card', html:'<b>① 一覧</b><br>「発注」タブと同じように、パンフレットの表紙が並びます。表紙の下に<b>現在の在庫部数</b>が表示されます。' },
+    { sel:'.stock-row input', html:'<b>② 手入力で修正</b><br>数量欄に直接入力すると、その場で在庫数を更新できます（棚卸しなどで実数に合わせたいときに）。' },
+    { sel:'.thumb-btn', html:'<b>③ 増減履歴を見る</b><br>表紙（または「履歴」ボタン）を押すと、その種類の<b>いつ・何が理由で・何部増減したか</b>の記録を確認できます。' },
+    { sel:null, title:"自動で増減します", html:'<div class="big">「提出済み」タブで店舗を<b>「準備済にする」</b>と、提出された部数ぶん<b>自動的に在庫が減ります</b>。<br>「印刷発注」タブで<b>「納品済」</b>にすると、依頼部数ぶん<b>自動的に在庫が増えます</b>。<br>もちろん、必要なときはいつでも手入力で調整できます。</div>' },
+    { sel:'[data-act="open-guide"]', html:'<b>使い方ガイド</b><br>いつでもここから説明とこのツアーを見られます。', optional:true },
+    { sel:null, title:"OK！", html:'<div class="big">これで在庫管理タブの説明は以上です。</div>', last:true }
   ]
 };
 const GUIDES = {
@@ -742,9 +762,19 @@ const GUIDES = {
     '<h4>使い方</h4>'+
     '<ul><li><b>期間（開始・終了）</b>・<b>店舗</b>・<b>パンフレット種類</b>で絞り込み</li>'+
     '<li>表：行＝種類、列＝月、セル＝発注数。行合計は種類の単位のまま、月合計・総合計は「部換算」</li>'+
-    '<li>下の「回ごとの提出内容」で、月＋店舗を選ぶと当時の明細</li></ul>'
+    '<li>下の「回ごとの提出内容」で、月＋店舗を選ぶと当時の明細</li></ul>',
+  stock:
+    '<h4>この画面の役割（パンフレット管理担当者用）</h4><p>パンフレットの<b>現在の在庫部数</b>を管理します。「設定」タブと共通のパスワードで保護されています。</p>'+
+    '<h4>見かた・使い方</h4>'+
+    '<ul><li>「発注」タブと同じ表紙一覧に、<b>現在の在庫部数</b>が表示されます</li>'+
+    '<li>数量欄に直接入力すると、その場で在庫数を手動で更新できます（棚卸しなど）</li>'+
+    '<li>表紙（または「履歴」ボタン）を押すと、その種類の<b>増減履歴</b>（日時・理由・増減数・残数）を確認できます</li></ul>'+
+    '<h4>自動で増減するタイミング</h4>'+
+    '<ul><li>「提出済み」タブで店舗を<b>「準備済にする」</b>→ 提出された部数ぶん自動的に<b>減ります</b></li>'+
+    '<li>「印刷発注」タブで<b>「納品済」</b>にする → 依頼部数ぶん自動的に<b>増えます</b>（同じ発注を2回「納品済」にしても二重には加算されません）</li></ul>'+
+    '<h4>注意</h4><p>在庫は0を下回りません（不足分は履歴にメモが残ります）。</p>'
 };
-function guideTitle(tab){ return tab==="submitted" ? "使い方ガイド（提出済み）" : tab==="history" ? "使い方ガイド（履歴）" : "使い方ガイド（発注）"; }
+function guideTitle(tab){ return tab==="submitted" ? "使い方ガイド（提出済み）" : tab==="history" ? "使い方ガイド（履歴）" : tab==="stock" ? "使い方ガイド（在庫管理）" : "使い方ガイド（発注）"; }
 
 let tourTab = "order", tourIdx = 0, tourFromGuide = false, tourReturnState = null;
 function tourDoneKey(tab){ return "pamph_tut_"+tab+"_v1"; }
@@ -770,6 +800,7 @@ function resetOrderScreen(){
 }
 function maybeAutoTour(tab){
   if(!TOURS[tab]) return;
+  if(tab==="stock" && !settingsUnlocked()) return;
   try{ if(location.search.indexOf("shot")>=0) return; }catch(e){}
   let done=false; try{ done = !!localStorage.getItem(tourDoneKey(tab)); }catch(e){ done=true; }
   if(done) return;
@@ -879,6 +910,7 @@ async function onModalClick(e){
     if(pending){
       if(pending.kind==="sub-confirm") await runSubConfirm(pending.id);
       else if(pending.kind==="sub-ready") await runSubReady(pending.id);
+      else if(pending.kind==="sub-readyall") await runSubReadyAll();
     }
   }
 }
@@ -924,14 +956,34 @@ async function runSubConfirm(id){
 }
 async function runSubReady(id){
   const sid = sheetId(UI.subMonth, id);
-  if(!DB.orderSheets[sid]) return;
+  const sh = DB.orderSheets[sid];
+  if(!sh) return;
   await store.merge("orderSheets", sid, {readyAt: now()});
   const st = DB.stores[id]||{};
+  if(!sh.stockApplied){
+    const items = Object.entries(sh.lines||{}).filter(([,v])=>num(v)>0);
+    for(const [tid,v] of items){
+      const tt = DB.pamphletTypes[tid]; if(!tt) continue;
+      const copies = toCopies(tt, v);
+      if(copies>0) await adjustStock(tid, -copies, "ready", (st.name||"")+"　"+UI.subMonth+" 分 発送準備完了", "orderSheet", sid);
+    }
+    await store.merge("orderSheets", sid, {stockApplied:true});
+  }
   const sent = sendNotifyTo(st.email||"",
     "【準備完了】"+(st.name||"")+" "+UI.subMonth+" 分パンフレット",
     (st.name||"")+" "+UI.subMonth+" 分のパンフレットの準備ができました。\n受け取り、または受け取りされる方への手配をお願いします。\n\nアプリ：https://inoue-group.github.io/pamphlet/");
   showBanner((st.name||"")+" を「準備済」にしました。"+(sent?"（店舗へ通知メールを送信）":"（この店舗のメール未登録のため通知は送っていません）"),"info");
   renderAll();
+}
+async function runSubReadyAll(){
+  const targets = activeStores().filter(s=>{
+    const sh = DB.orderSheets[sheetId(UI.subMonth, s.id)];
+    return isSubmitted(sh) && !sh.readyAt;
+  });
+  if(!targets.length){ showBanner("対象の店舗がありません（提出済みで未準備の店舗がありません）。","info"); return; }
+  if(!confirm(UI.subMonth+" 分：提出済みの "+targets.length+" 店舗をまとめて「準備済」にします。各店舗へ通知メールも送信されます。よろしいですか？")) return;
+  for(const s of targets){ await runSubReady(s.id); }
+  showBanner(targets.length+" 店舗をまとめて「準備済」にしました。","info");
 }
 function askPwThen(kind, id){
   UI.pendingConfirm = {kind, id};
@@ -978,6 +1030,7 @@ function renderAll(){
   else if(UI.tab==="submitted")v.innerHTML = viewSubmitted();
   else if(UI.tab==="history") v.innerHTML = viewHistory();
   else if(UI.tab==="summary") v.innerHTML = settingsUnlocked() ? viewSummary() : viewSettingsLock("集計タブ");
+  else if(UI.tab==="stock")   v.innerHTML = settingsUnlocked() ? viewStock() : viewSettingsLock("在庫管理タブ");
   else if(UI.tab==="print")   v.innerHTML = settingsUnlocked() ? viewPrint() : viewSettingsLock("印刷発注タブ");
   else if(UI.tab==="catalog") v.innerHTML = viewCatalog();
   else if(UI.tab==="settings")v.innerHTML = settingsUnlocked() ? viewSettings() : viewSettingsLock("設定タブ");
@@ -1187,6 +1240,7 @@ function viewSubmitted(){
     '<div class="row">'+
       '<div class="fld"><label>対象月</label><input type="month" data-act="sub-month" value="'+esc(m)+'"></div>'+
       '<div class="fld" style="min-width:auto"><label>&nbsp;</label><div><span class="badge">提出済 <b>'+done+'</b> / '+stores.length+' 店舗</span></div></div>'+
+      '<div class="fld" style="min-width:auto"><label>&nbsp;</label><button class="btn" data-act="sub-readyall">一括で準備済にする</button></div>'+
       '<div class="fld" style="min-width:auto"><label>&nbsp;</label><button class="btn" data-act="sub-printall">提出分をまとめて印刷</button></div>'+
     '</div>'+
     demoRow +
@@ -1381,6 +1435,72 @@ function viewPrint(){
     '</section>';
 }
 
+/* ===== 在庫管理タブ ===== */
+async function adjustStock(typeId, delta, reason, note, refKind, refId){
+  const t = DB.pamphletTypes[typeId]; if(!t) return;
+  const before = num(t.stockQty);
+  let after = before + delta;
+  let clamped = false;
+  if(after < 0){ after = 0; clamped = true; }
+  await store.merge("pamphletTypes", typeId, {stockQty: after, stockUpdatedAt: now()});
+  await store.put("stockLogs", uid(), {
+    typeId, typeName: t.name||"",
+    delta: (after - before), reason: reason||"manual",
+    note: (note||"") + (clamped ? "（在庫不足のため0で記録）" : ""),
+    refKind: refKind||"", refId: refId||"",
+    before, after, createdAt: now()
+  });
+}
+function stockReasonLabel(r){
+  return r==="ready" ? "発送準備完了（自動）" : r==="delivered" ? "印刷発注 納品（自動）" : "手入力";
+}
+function openStockHistory(typeId){
+  const t = DB.pamphletTypes[typeId] || {};
+  const logs = Object.values(DB.stockLogs).filter(l=> l.typeId===typeId)
+    .sort((a,b)=> String(b.createdAt||"").localeCompare(String(a.createdAt||"")));
+  const rows = logs.map(l=>{
+    const d = num(l.delta), pos = d>0;
+    return '<tr><td class="muted" style="white-space:nowrap">'+esc(fmtDT(l.createdAt))+'</td>'+
+      '<td>'+esc(stockReasonLabel(l.reason))+'</td>'+
+      '<td class="muted">'+esc(l.note||"")+'</td>'+
+      '<td class="num" style="color:'+(pos?"var(--ok)":d<0?"var(--danger)":"var(--ink-soft)")+';font-weight:700">'+(pos?"+":"")+d+'</td>'+
+      '<td class="num">'+num(l.after)+'</td>'+
+    '</tr>';
+  }).join("");
+  openModal("在庫増減履歴："+(t.name||""),
+    '<div class="muted" style="margin-bottom:8px">現在の在庫：<b>'+num(t.stockQty)+' 部</b></div>'+
+    '<div class="tbl-wrap"><table><thead><tr><th>日時</th><th>区分</th><th>メモ</th><th class="num">増減</th><th class="num">残数</th></tr></thead><tbody>'+
+    (rows || '<tr><td colspan="5" class="muted">まだ履歴がありません</td></tr>')+
+    '</tbody></table></div>',
+    '<button class="btn primary sp" data-act="modal-close">閉じる</button>');
+}
+function viewStock(){
+  const byCat = typesByCat();
+  const body = CATS.map(cat=>{
+    const list = byCat[cat.key]||[];
+    if(!list.length) return "";
+    return '<div class="cat-h">'+esc(cat.label)+'</div><div class="grid">' + list.map(t=>{
+      const img = t.coverImage ? '<img class="thumb" loading="lazy" src="'+t.coverImage+'" alt="">' : '<div class="thumb ph">表紙未登録</div>';
+      const bcol = brandColor(t.brand);
+      const qty = num(t.stockQty);
+      return '<div class="card">'+
+        '<span class="bdot" style="background:'+bcol+'" title="ブランド"></span>'+
+        '<button type="button" class="thumb-btn" data-act="stock-hist" data-id="'+t.id+'" title="増減履歴を見る">'+img+'</button>'+
+        '<div class="nm">'+esc(t.name)+'</div>'+
+        '<div class="stock-row"><input type="number" min="0" class="short" data-act="stock-qty" data-id="'+t.id+'" data-fk="stk-'+t.id+'" value="'+qty+'"> 部'+
+          '<button type="button" class="btn sm" data-act="stock-hist" data-id="'+t.id+'">履歴</button></div>'+
+      '</div>';
+    }).join("") + '</div>';
+  }).join("");
+
+  return '<section class="panel">'+
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">'+
+      '<div style="flex:1;min-width:260px"><h2>在庫管理</h2><div class="sub">各パンフレットの現在の在庫部数を管理します。数量欄に直接入力すると手動で更新できます。「提出済み」タブで店舗を「準備済にする」と自動的に減り、「印刷発注」タブで「納品済」にすると自動的に増えます。表紙（または「履歴」）をクリックすると増減の記録を確認できます。</div></div>'+
+      '<button class="btn" data-act="open-guide" style="flex:none;margin-left:auto">📖 使い方ガイド</button>'+
+    '</div>'+ (body || '<p class="muted">パンフレット種類が登録されていません。</p>') +
+    '</section>';
+}
+
 /* ===== WEBカタログタブ ===== */
 function viewCatalog(){
   const all = catalogsSorted();
@@ -1532,8 +1652,8 @@ function viewSettings(){
       '<span class="muted">「提出の通知先」宛にテストメールを送ります。</span></div></section>';
 
   const hasPw = !!settingsPassHash();
-  const pwSection = '<section class="panel"><h2>設定・印刷発注・集計タブのパスワード</h2>'+
-    '<div class="sub">設定すると、<b>「設定」「印刷発注」「集計」タブ</b>を開くとき、また<b>「提出済み」タブの「確認」「準備済にする」</b>を押すときに、このパスワードを求めます（共通の1つのパスワードです。同じブラウザでは一度入力すれば、閉じるまで再入力不要）。'+
+  const pwSection = '<section class="panel"><h2>設定・印刷発注・集計・在庫管理タブのパスワード</h2>'+
+    '<div class="sub">設定すると、<b>「設定」「印刷発注」「集計」「在庫管理」タブ</b>を開くとき、また<b>「提出済み」タブの「確認」「準備済にする」</b>を押すときに、このパスワードを求めます（共通の1つのパスワードです。同じブラウザでは一度入力すれば、閉じるまで再入力不要）。'+
     'データそのものの保護ではなく、店舗の人などの誤操作を防ぐためのものです。</div>'+
     '<div class="row">'+
       '<div class="fld"><label>新しいパスワード（3文字以上）</label><input type="password" id="set-newpw" data-fk="set-newpw"></div>'+
@@ -1615,8 +1735,29 @@ async function onChange(e){
   if(a==="pofilter"){ UI.poStatusFilter=t.value; renderAll(); return; }
   if(a==="po-qty"){ await store.merge("printOrders", id, {qty:num(t.value), updatedAt:now()}); return; }
   if(a==="po-note"){ await store.merge("printOrders", id, {note:t.value, updatedAt:now()}); return; }
-  if(a==="po-status"){ await store.merge("printOrders", id, {status:t.value, updatedAt:now()}); renderAll(); return; }
+  if(a==="po-status"){
+    const p = DB.printOrders[id];
+    const prevStatus = p ? (p.status||"依頼中") : "";
+    const newStatus = t.value;
+    await store.merge("printOrders", id, {status:newStatus, updatedAt:now()});
+    if(p && newStatus==="納品済" && prevStatus!=="納品済" && !p.stockApplied){
+      const qty = num(p.qty);
+      if(qty>0) await adjustStock(p.typeId, qty, "delivered", (p.typeName||"")+"　印刷発注 納品", "printOrder", id);
+      await store.merge("printOrders", id, {stockApplied:true});
+    }
+    renderAll(); return;
+  }
   if(a==="po-due"){ await store.merge("printOrders", id, {dueDate:t.value, updatedAt:now()}); return; }
+
+  /* 在庫管理 */
+  if(a==="stock-qty"){
+    const tt = DB.pamphletTypes[id]; if(!tt) return;
+    const before = num(tt.stockQty);
+    const after = Math.max(0, num(t.value));
+    if(after===before) return;
+    await adjustStock(id, after-before, "manual", "手入力による修正", "", "");
+    renderAll(); return;
+  }
 
   /* カタログ */
   if(a==="c-title"){ await store.merge("catalogs", id, {title:t.value, updatedAt:now()}); return; }
@@ -1732,6 +1873,10 @@ async function onClick(e){
     if(!settingsUnlocked()){ askPwThen("sub-ready", id); return; }
     await runSubReady(id); return;
   }
+  if(a==="sub-readyall"){
+    if(!settingsUnlocked()){ askPwThen("sub-readyall", ""); return; }
+    await runSubReadyAll(); return;
+  }
   if(a==="sub-unready"){ await store.merge("orderSheets", sheetId(UI.subMonth, id), {readyAt: ""}); renderAll(); return; }
   if(a==="po-confirm"){ await store.merge("printOrders", id, {confirmedAt: now()}); renderAll(); return; }
   if(a==="po-unconfirm"){ await store.merge("printOrders", id, {confirmedAt: ""}); renderAll(); return; }
@@ -1743,6 +1888,9 @@ async function onClick(e){
     await store.merge("orderSheets", sid, {status:"下書き", history:hist, updatedAt:now()});
     renderAll(); return;
   }
+
+  /* 在庫管理 */
+  if(a==="stock-hist"){ openStockHistory(id); return; }
 
   /* 集計 → 印刷発注へ登録（部数） */
   if(a==="po-add"){
@@ -1800,6 +1948,7 @@ async function onClick(e){
     if(hashStr(v) === settingsPassHash()){
       try{ sessionStorage.setItem("pamph_set_ok", settingsPassHash()); }catch(e){}
       showBanner("ロックを解除しました。","info"); renderAll();
+      maybeAutoTour(UI.tab);
     }else{ showBanner("パスワードが違います。","err"); }
     return;
   }
