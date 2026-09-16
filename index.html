@@ -1601,16 +1601,17 @@ function viewSummary(){
       '<td class="muted" style="min-width:180px">'+(bd||"—")+'</td>'+
       '<td class="num"><b>'+raw+'</b> '+u+'</td>'+
       '<td class="num">'+copies+'</td>'+
+      '<td class="num">'+num(t.stockQty)+' 部</td>'+
       '<td style="white-space:nowrap"><input class="short" type="number" min="0" id="rq-'+t.id+'" data-fk="rq-'+t.id+'" value="'+(copies||"")+'"> 部'+
-        ' <button class="btn sm" data-act="po-add" data-id="'+t.id+'">印刷発注へ</button></td>'+
+        ' <button class="btn sm" data-act="po-add" data-id="'+t.id+'">依頼する</button></td>'+
     '</tr>';
   }).join("");
 
   return '<section class="panel">'+
     '<h2>対象月の発注集計</h2><div class="sub">対象月の全店舗発注を種類ごとに合計します。「提出済み」タブで<b>「準備済」</b>にしたものだけが集計に反映されます。右端から「印刷発注」に部数で登録できます。</div>'+
     '<div class="row"><div class="fld"><label>対象月</label><input type="month" data-act="summonth" value="'+esc(m)+'"></div></div>'+
-    '<div class="tbl-wrap"><table><thead><tr><th>種類</th><th>店舗別内訳</th><th class="num">発注合計</th><th class="num">部換算</th><th>印刷発注へ登録（部）</th></tr></thead>'+
-    '<tbody>'+ (aggRows || '<tr><td colspan="5" class="muted">この月の発注はまだありません</td></tr>') +'</tbody></table></div>'+
+    '<div class="tbl-wrap"><table><thead><tr><th>種類</th><th>店舗別内訳</th><th class="num">発注合計</th><th class="num">部換算</th><th class="num">現在の在庫</th><th>印刷発注へ登録（部）</th></tr></thead>'+
+    '<tbody>'+ (aggRows || '<tr><td colspan="6" class="muted">この月の発注はまだありません</td></tr>') +'</tbody></table></div>'+
     '</section>';
 }
 
