@@ -96,6 +96,10 @@ window.PAMPH_FIREBASE_CONFIG = {
   .fld{display:flex; flex-direction:column; gap:4px; min-width:150px}
   .fld label{font-size:11px; font-weight:700; color:var(--ink-soft)}
   input,select,textarea{font-family:inherit; font-size:14px; color:var(--ink); background:var(--panel-2); border:1px solid var(--line-strong); border-radius:10px; padding:8px 10px}
+  /* 印刷発注の状態プルダウン：閉じているときは状態の色、開いた選択肢は白地に読みやすく＋オレンジでハイライト */
+  .po-status-select option{background:#fff; color:#111827}
+  .po-status-select option:checked{background:#F39800; color:#fff}
+  .po-status-select option:hover, .po-status-select option:focus{background:#F39800; color:#fff}
   input:focus,select:focus,textarea:focus{outline:2px solid color-mix(in srgb,var(--accent) 45%,transparent); outline-offset:1px}
   textarea{resize:vertical; min-height:60px}
   input[type=color]{padding:2px; width:44px; height:34px}
@@ -578,13 +582,17 @@ const toCopies    = (t,qty)=> unitOf(t)==="束" ? num(qty)*perBundleOf(t) : num(
 
 /* ---------- seeding ---------- */
 let seedTried = false;
+let storesReady = false, typesReady = false;
 function maybeSeed(){
   if(seedTried) return;
+  // stores・pamphletTypes の両方が実際にサーバーから届くまでは「空＝未シード」と判断しない
+  // （片方だけ先に届いた瞬間に誤って空と判定し、二重にシードしてしまう事故を防ぐ）
+  if(!storesReady || !typesReady) return;
   if(Object.keys(DB.stores).length || Object.keys(DB.pamphletTypes).length){ seedTried = true; return; }
   seedTried = true;
   SEED_STORES.forEach((nm,i)=> store.put("stores", uid(), {name:nm, sortOrder:(i+1)*10, active:true}));
   SEED_TYPES.forEach((t,i)=> store.put("pamphletTypes", uid(), {name:t[0], category:t[1], coverImage:(SEED_COVERS[t[0]]||""), note:"", unit:"束", perBundle:40, brand:"sai", sortOrder:(i+1)*10, active:true, updatedAt:now()}));
-  store.put("config","app", Object.assign({}, DEFAULT_CONFIG, {updatedAt:now()}));
+  store.merge("config","app", Object.assign({}, DEFAULT_CONFIG, {updatedAt:now()})); // merge（既存の設定・各種完了フラグを壊さないため put は使わない）
   if(store.mode==="local") setTimeout(seedDemo, 450);
 }
 let coversBackfilled = false;
@@ -706,7 +714,14 @@ function boot(){
   }catch(e){}
 
   const render = debounce(renderAll, 60);
-  COLLS.forEach(coll=> store.watch(coll, m=>{ DB[coll]=m; maybeSeed(); if(coll==="pamphletTypes") fixSortOrders(); backfillCovers(); backfillAliases(); seedCatalogsV1(); maybeAutoPick(); render(); }));
+  COLLS.forEach(coll=> store.watch(coll, m=>{
+    DB[coll]=m;
+    if(coll==="stores") storesReady = true;
+    if(coll==="pamphletTypes") typesReady = true;
+    maybeSeed();
+    if(coll==="pamphletTypes") fixSortOrders();
+    backfillCovers(); backfillAliases(); seedCatalogsV1(); maybeAutoPick(); render();
+  }));
 
   $("#tabs").addEventListener("click", e=>{
     const b = e.target.closest("button[data-tab]"); if(!b) return;
@@ -744,7 +759,7 @@ function boot(){
       if(!chatPanel.classList.contains("hide")){
         if(!chatBooted){
           chatBooted = true;
-          pushChatMsg("bot","こんにちは！パンフレットの在庫・発注状況・過去の履歴や、アプリの使い方について質問できます。<br>例）「〇〇店の8月の発注状況」「◯◯の在庫は？」「◯◯の発注推移」「◯◯の印刷発注状況」「準備済みとは」");
+          pushChatMsg("bot","こんにちは！パンフレットの在庫・発注状況・過去の履歴や、アプリの使い方について質問できます。<br>例）「〇〇店の8月の発注状況」「◯◯の在庫は？」「◯◯の発注推移」「◯◯の印刷発注状況」「9月の集計」「準備済みとは」");
         }
         if(chatInput) chatInput.focus();
       }
@@ -832,7 +847,7 @@ const TOURS = {
     { sel:'[data-act="hfrom"]', html:'<b>期間（開始・終了）</b><br>集計する月の範囲を指定します。' },
     { sel:'[data-act="hstore"]', html:'<b>店舗で絞り込み</b><br>「全店舗（合計）」または特定の店舗に絞れます。' },
     { sel:'[data-act="htype"]', html:'<b>パンフレット種類で絞り込み</b><br>特定の種類だけを表示できます。' },
-    { sel:'.tbl-wrap', html:'<b>ピボット表</b><br>行＝種類、列＝月、セル＝発注数。行合計は種類の単位のまま、月合計・総合計は「部換算」で表示されます。下の「回ごとの提出内容」で当時の明細も見られます。' },
+    { sel:'.tbl-wrap', html:'<b>ピボット表</b><br>行＝種類、列＝月、セル＝発注数。行合計は種類の単位のまま、月合計・総合計は「部換算」で表示されます。<b>「提出済み」タブで「準備済」にしたものだけ</b>が反映されます。下の「回ごとの提出内容」で当時の明細も見られます。' },
     { sel:'[data-act="open-guide"]', html:'<b>使い方ガイド</b><br>いつでもここから説明とこのツアーを見られます。', optional:true },
     { sel:null, title:"OK！", html:'<div class="big">次回の印刷数量を決める目安に使ってください。</div>', last:true }
   ],
@@ -879,6 +894,7 @@ const GUIDES = {
     '<h4>使い方</h4>'+
     '<ul><li><b>期間（開始・終了）</b>・<b>店舗</b>・<b>パンフレット種類</b>で絞り込み</li>'+
     '<li>表：行＝種類、列＝月、セル＝発注数。行合計は種類の単位のまま、月合計・総合計は「部換算」</li>'+
+    '<li><b>「提出済み」タブで「準備済」にしたものだけ</b>が集計に反映されます（提出しただけ・確認しただけの段階ではまだ反映されません）</li>'+
     '<li>下の「回ごとの提出内容」で、月＋店舗を選ぶと当時の明細</li></ul>',
   stock:
     '<h4>この画面の役割（パンフレット管理担当者用）</h4><p>パンフレットの<b>現在の在庫部数</b>を管理します。「設定」タブと共通のパスワードで保護されています。</p>'+
@@ -1373,9 +1389,9 @@ function viewSubmitted(){
       '<div class="sub">提出された発注データを店舗ごとに確認し、印刷して振り分けに使います。印刷は添付フォーマット（表紙＋発注数）で出力されます。</div></div>'+
       '<button class="btn" data-act="open-guide">📖 使い方ガイド</button>'+
     '</div>'+
-    '<div class="row">'+
+    '<div class="row" style="margin-bottom:16px">'+
       '<div class="fld"><label>対象月</label><input type="month" data-act="sub-month" value="'+esc(m)+'"></div>'+
-      '<div class="fld" style="min-width:auto"><label>&nbsp;</label><div><span class="badge">提出済 <b>'+done+'</b> / '+stores.length+' 店舗</span></div></div>'+
+      '<div class="fld" style="min-width:auto;align-self:center"><span class="badge">提出済 <b>'+done+'</b> / '+stores.length+' 店舗</span></div>'+
       '<div class="fld" style="min-width:auto"><label>&nbsp;</label><button class="btn" data-act="sub-readyall">一括で準備済にする</button></div>'+
       '<div class="fld" style="min-width:auto"><label>&nbsp;</label><button class="btn" data-act="sub-printall">提出分をまとめて印刷</button></div>'+
     '</div>'+
@@ -1431,6 +1447,7 @@ function viewHistory(){
     let s=0;
     Object.values(DB.orderSheets).forEach(sh=>{
       if(sh.month!==mon) return;
+      if(!sh.readyAt) return; // 「準備済」になったものだけ集計に反映
       if(h.storeId && sh.storeId!==h.storeId) return;
       s += num((sh.lines||{})[typeId]);
     });
@@ -1478,7 +1495,7 @@ function viewHistory(){
 
   return '<section class="panel">'+
     '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">'+
-      '<div><h2>過去の発注数</h2><div class="sub">種類ごと・月ごとの発注数の推移を確認できます。</div></div>'+
+      '<div><h2>過去の発注数</h2><div class="sub">種類ごと・月ごとの発注数の推移を確認できます。「提出済み」タブで<b>「準備済」</b>にしたものだけが集計に反映されます。</div></div>'+
       '<button class="btn" data-act="open-guide">📖 使い方ガイド</button>'+
     '</div>'+
     '<div class="row">'+
@@ -1503,6 +1520,7 @@ function viewSummary(){
   const perRaw = {}, perStore = {};
   Object.values(DB.orderSheets).forEach(s=>{
     if(s.month!==m) return;
+    if(!s.readyAt) return; // 「準備済」になったものだけ集計に反映
     Object.entries(s.lines||{}).forEach(([tid,v])=>{
       const q = num(v); if(!q) return;
       perRaw[tid] = (perRaw[tid]||0) + q;
@@ -1526,7 +1544,7 @@ function viewSummary(){
   }).join("");
 
   return '<section class="panel">'+
-    '<h2>対象月の発注集計</h2><div class="sub">対象月の全店舗発注を種類ごとに合計します。右端から「印刷発注」に部数で登録できます。</div>'+
+    '<h2>対象月の発注集計</h2><div class="sub">対象月の全店舗発注を種類ごとに合計します。「提出済み」タブで<b>「準備済」</b>にしたものだけが集計に反映されます。右端から「印刷発注」に部数で登録できます。</div>'+
     '<div class="row"><div class="fld"><label>対象月</label><input type="month" data-act="summonth" value="'+esc(m)+'"></div></div>'+
     '<div class="tbl-wrap"><table><thead><tr><th>種類</th><th>店舗別内訳</th><th class="num">発注合計</th><th class="num">部換算</th><th>印刷発注へ登録（部）</th></tr></thead>'+
     '<tbody>'+ (aggRows || '<tr><td colspan="5" class="muted">この月の発注はまだありません</td></tr>') +'</tbody></table></div>'+
@@ -1547,7 +1565,7 @@ function viewPrint(){
       '<td style="min-width:180px; text-align:left; vertical-align:middle">'+(unconf?'<span class="pill" style="background:var(--danger);margin-right:6px">新規</span>':'')+esc(p.typeName||t.name||"?")+'</td>'+
       '<td><input class="short" type="number" min="0" data-act="po-qty" data-id="'+p.id+'" data-fk="poq-'+p.id+'" value="'+num(p.qty)+'"> 部</td>'+
       '<td><input class="grow" type="text" data-act="po-note" data-id="'+p.id+'" data-fk="pon-'+p.id+'" value="'+esc(p.note||"")+'" placeholder="印刷所・仕様など"></td>'+
-      '<td><select data-act="po-status" data-id="'+p.id+'" style="color:#fff;background:'+printStatusColor(p.status||"依頼中")+'">'+sopts+'</select></td>'+
+      '<td><select class="po-status-select" data-act="po-status" data-id="'+p.id+'" style="color:#fff;background:'+printStatusColor(p.status||"依頼中")+'">'+sopts+'</select></td>'+
       '<td><input type="date" data-act="po-due" data-id="'+p.id+'" data-fk="pod-'+p.id+'" value="'+esc(p.dueDate||"")+'"></td>'+
       '<td class="muted">'+esc(p.month||"")+'</td>'+
       '<td class="muted">'+esc((p.createdAt||"").slice(0,10))+'</td>'+
@@ -2267,7 +2285,7 @@ function parseMonthFromQuery(q){
 function typeMonthlyTotals(typeId, months){
   return months.map(m=>{
     let raw=0;
-    Object.values(DB.orderSheets).forEach(sh=>{ if(sh.month===m) raw += num((sh.lines||{})[typeId]); });
+    Object.values(DB.orderSheets).forEach(sh=>{ if(sh.month===m && sh.readyAt) raw += num((sh.lines||{})[typeId]); });
     return raw;
   });
 }
@@ -2328,6 +2346,25 @@ function chatAnswer(qRaw){
     const bd = type.brand==="sai" ? "彩ハウス" : type.brand==="fp" ? "F.PRODUCTS" : "共通";
     const stockPart = settingsUnlocked() ? "／現在の在庫="+num(type.stockQty)+"部" : "";
     return "「"+esc(type.name)+"」：ブランド="+bd+"／単位="+unitOf(type)+stockPart;
+  }
+
+  if(/(集計|合計)/.test(q) && !store){
+    if(!settingsUnlocked()) return PW_MSG;
+    const m = monthQ || UI.sumMonth || todayMonth();
+    const perRaw = {};
+    Object.values(DB.orderSheets).forEach(sh=>{
+      if(sh.month!==m) return;
+      if(!sh.readyAt) return; // 「準備済」になったものだけ集計に反映
+      Object.entries(sh.lines||{}).forEach(([tid,v])=>{ const qv=num(v); if(qv) perRaw[tid]=(perRaw[tid]||0)+qv; });
+    });
+    const rows = Object.keys(perRaw).map(tid=>{
+      const tt = DB.pamphletTypes[tid]||{};
+      return { name: tt.name||tid, copies: toCopies(tt, perRaw[tid]) };
+    }).sort((a,b)=> b.copies-a.copies).slice(0,8);
+    if(!rows.length) return esc(m)+"分は、まだ発注データがありません。";
+    const total = rows.reduce((a,b)=>a+b.copies,0);
+    const listTxt = rows.map(r=> esc(r.name)+"："+r.copies+"部").join("<br>");
+    return esc(m)+"分の発注集計（部換算・多い順、上位"+rows.length+"件）：<br>"+listTxt+"<br>表示分の合計："+total+"部（全種類は「集計」タブでご確認いただけます）";
   }
 
   if(/(意見|要望|クレーム|フィードバック|問い合わせ|苦情)/.test(q)){
