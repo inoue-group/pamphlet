@@ -601,6 +601,33 @@ function backfillCovers(){
   });
   store.merge("config","app",{coversBackfilledV1:true, updatedAt:now()});
 }
+/* 英語表記のパンフレット名に、検索チャット用のカタカナ別名を初回だけ自動登録 */
+const ALIAS_SEED = {
+  "INOUE Brand Guide": "ブランドガイド、イノウエブランドガイド",
+  "LIFE STORY": "ライフストーリー",
+  "HAPPY CUSTOMER 8": "ハッピーカスタマー",
+  "DESIGN WORKS 8": "デザインワークス",
+  "casa piatto": "カーサピアット",
+  "Freedom": "フリーダム",
+  "Life Box Concept Book": "ライフボックス、ライフボックスコンセプトブック",
+  "evoltz": "エヴォルツ、エボルツ",
+  "evoltz Times": "エヴォルツタイムズ、エボルツタイムズ",
+  "evoltz QoL": "エヴォルツキューオーエル、エボルツQOL"
+};
+let aliasBackfilled = false;
+function backfillAliases(){
+  if(aliasBackfilled) return;
+  if(!DB.config.app) return;
+  const types = Object.values(DB.pamphletTypes);
+  if(!types.length) return;
+  aliasBackfilled = true;
+  if(DB.config.app.aliasBackfilledV1) return;   // 一度実行済みなら二度と触らない（手入力した別名が戻る問題を防ぐ）
+  types.forEach(t=>{
+    if((!t.searchAliases || t.searchAliases==="") && ALIAS_SEED[t.name])
+      store.merge("pamphletTypes", t.id, {searchAliases:ALIAS_SEED[t.name], updatedAt:now()});
+  });
+  store.merge("config","app",{aliasBackfilledV1:true, updatedAt:now()});
+}
 const CATALOG_SEED = [
   ["Brand Guide","https://my.ebook5.net/inoue-group/brand_guide/"],
   ["HAPPY CUSTOMERS","https://my.ebook5.net/inoue-group/happy_customers/"],
@@ -679,7 +706,7 @@ function boot(){
   }catch(e){}
 
   const render = debounce(renderAll, 60);
-  COLLS.forEach(coll=> store.watch(coll, m=>{ DB[coll]=m; maybeSeed(); if(coll==="pamphletTypes") fixSortOrders(); backfillCovers(); seedCatalogsV1(); maybeAutoPick(); render(); }));
+  COLLS.forEach(coll=> store.watch(coll, m=>{ DB[coll]=m; maybeSeed(); if(coll==="pamphletTypes") fixSortOrders(); backfillCovers(); backfillAliases(); seedCatalogsV1(); maybeAutoPick(); render(); }));
 
   $("#tabs").addEventListener("click", e=>{
     const b = e.target.closest("button[data-tab]"); if(!b) return;
@@ -1725,6 +1752,7 @@ function viewSettings(){
     return '<div class="rowline">'+
       (t.coverImage? '<img class="mini" src="'+t.coverImage+'" alt="">' : '<span class="mini"></span>')+
       '<input class="grow" type="text" data-act="t-name" data-id="'+t.id+'" data-fk="tn-'+t.id+'" value="'+esc(t.name)+'">'+
+      '<input class="grow" type="text" data-act="t-alias" data-id="'+t.id+'" data-fk="ta-'+t.id+'" value="'+esc(t.searchAliases||"")+'" placeholder="検索チャット用の別名（例：ブランドガイド）カンマ区切りで複数可" title="検索チャットで、正式名でなくてもこの別名で見つけられるようにします">'+
       '<select data-act="t-cat" data-id="'+t.id+'">'+catOpts(t)+'</select>'+
       '<button class="swatch '+((t.brand||"sai")==="sai"?"on":"")+'" data-act="t-brand" data-id="'+t.id+'" data-brand="sai" style="background:'+BRANDS.sai.color+'" title="ブランドA"></button>'+
       '<button class="swatch '+((t.brand||"sai")==="fp"?"on":"")+'" data-act="t-brand" data-id="'+t.id+'" data-brand="fp" style="background:'+BRANDS.fp.color+'" title="ブランドB"></button>'+
@@ -1804,7 +1832,7 @@ function viewSettings(){
     '<section class="panel"><h2>店舗</h2><div class="sub">発注を行う店舗の一覧。「担当者メール」は、提出済みタブで「準備済」を押したときにその店舗へ通知メールを送る宛先です（メール通知を有効にしている場合）。</div>'+storeRows+
     '<div style="margin-top:10px"><button class="btn" data-act="s-add">＋ 店舗を追加</button></div></section>'+
 
-    '<section class="panel"><h2>パンフレット種類</h2><div class="sub">表紙画像は選択すると自動縮小して保存。単位を「束」にすると発注は束数入力になり、目安部数で部数換算します（ネット印刷の1束30〜50部に対応）。</div>'+
+    '<section class="panel"><h2>パンフレット種類</h2><div class="sub">表紙画像は選択すると自動縮小して保存。単位を「束」にすると発注は束数入力になり、目安部数で部数換算します（ネット印刷の1束30〜50部に対応）。英語表記の種類には、検索チャット用のカタカナ別名を自動で登録済みです（変更・追加は「検索チャット用の別名」欄から）。</div>'+
     typeRows+
     '<div style="margin-top:10px"><button class="btn" data-act="t-add">＋ 種類を追加</button></div></section>'+
 
@@ -1913,6 +1941,7 @@ async function onChange(e){
 
   /* 設定：種類 */
   if(a==="t-name"){ await store.merge("pamphletTypes", id, {name:t.value, updatedAt:now()}); return; }
+  if(a==="t-alias"){ await store.merge("pamphletTypes", id, {searchAliases:t.value, updatedAt:now()}); return; }
   if(a==="t-cat"){ await store.merge("pamphletTypes", id, {category:t.value, updatedAt:now()}); return; }
   if(a==="t-unit"){ await store.merge("pamphletTypes", id, {unit:t.value, perBundle: (DB.pamphletTypes[id]||{}).perBundle || 40, updatedAt:now()}); renderAll(); return; }
   if(a==="t-perbundle"){ await store.merge("pamphletTypes", id, {perBundle:Math.max(1,num(t.value)), updatedAt:now()}); return; }
@@ -2206,11 +2235,21 @@ function findEntity(list, nameFn, q){
   });
   return best;
 }
+function findTypeEntity(q){
+  let best = null, bestLen = 0;
+  Object.values(DB.pamphletTypes).forEach(t=>{
+    const candidates = [t.name].concat(String(t.searchAliases||"").split(/[,、／\/\n]/).map(s=>s.trim()).filter(Boolean));
+    candidates.forEach(nm=>{
+      if(nm && q.indexOf(nm) >= 0 && nm.length > bestLen){ best = t; bestLen = nm.length; }
+    });
+  });
+  return best;
+}
 function chatAnswer(qRaw){
   const q = String(qRaw||"").trim();
   if(!q) return "何か聞きたいことを入力してください。";
 
-  const type = findEntity(Object.values(DB.pamphletTypes), t=>t.name, q);
+  const type = findTypeEntity(q);
   const store = findEntity(activeStores(), s=>s.name, q);
   const catalog = findEntity(Object.values(DB.catalogs), c=>c.title, q);
 
