@@ -62,7 +62,7 @@ window.PAMPH_FIREBASE_CONFIG = {
 
   .appbar{position:sticky; top:0; z-index:20; background:var(--panel); border-bottom:1px solid var(--line); box-shadow:var(--shadow)}
   .appbar-in{max-width:1180px; margin:0 auto; padding:10px 16px; display:flex; align-items:center; gap:12px; flex-wrap:wrap}
-  .brand{display:flex; align-items:center; gap:10px; margin-right:auto}
+  .brand{display:flex; align-items:center; gap:10px; margin-right:auto; cursor:pointer}
   .brand .mk{width:30px;height:30px;border-radius:9px;object-fit:cover;display:block;border:1px solid var(--line)}
   .brand b{font-size:16px; letter-spacing:.02em}
   .brand span{display:block; font-size:11px; color:var(--ink-soft); font-weight:500; letter-spacing:.04em}
@@ -179,6 +179,13 @@ window.PAMPH_FIREBASE_CONFIG = {
   .sub-row .s-name{font-weight:700; min-width:84px}
   .sub-detail{margin:-4px 0 12px; padding:10px 12px; border:1px dashed var(--line-strong); border-radius:10px}
 
+  .fb-item{border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin-bottom:10px; background:var(--panel-2)}
+  .fb-item-head{display:flex; gap:8px; flex-wrap:wrap; align-items:center; font-size:12px; margin-bottom:6px}
+  .fb-item-body{font-size:13.5px; line-height:1.7; white-space:pre-wrap}
+  .fb-item-resp{margin-top:8px; padding-top:8px; border-top:1px dashed var(--line-strong)}
+  .fb-item-resp label{display:block; font-size:12px; margin-bottom:4px}
+  .fb-item-resp textarea{width:100%; min-height:56px; font-size:13px}
+
   @media (max-width:560px){
     .fld{min-width:120px; flex:1 1 44%}
     .grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}
@@ -207,6 +214,33 @@ window.PAMPH_FIREBASE_CONFIG = {
     .pnote{ margin-top:5px; border:1px solid #999; min-height:20px; padding:3px 8px; font-size:9px }
     .pnote b{ font-size:9px; margin-right:6px }
   }
+
+  /* 起動アニメーション */
+  .boot-splash{ position:fixed; inset:0; z-index:200; background:rgba(18,13,10,.86); display:flex; align-items:center; justify-content:center; opacity:1; visibility:visible; transition:opacity .6s ease, visibility .6s ease }
+  .boot-splash.hide{ opacity:0; visibility:hidden; pointer-events:none }
+  .boot-stack{ display:flex; flex-direction:column; align-items:center; gap:8px }
+  .boot-sub{ color:rgba(255,255,255,.5); font-size:clamp(10px,1.7vw,13px); font-weight:600; letter-spacing:.2em; text-transform:uppercase; font-family:"Bahnschrift SemiBold","Bahnschrift","Segoe UI","Helvetica Neue",Arial,sans-serif; white-space:nowrap }
+  .boot-kanji{ position:relative; width:min(94vw,760px); height:130px }
+  .boot-kanji-dim, .boot-kanji-fill{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:clamp(36px,8.4vw,76px); font-weight:600; letter-spacing:.06em; line-height:1; font-family:"Bahnschrift SemiBold","Bahnschrift","Segoe UI","Helvetica Neue",Arial,sans-serif; user-select:none; white-space:nowrap }
+  .boot-kanji-dim{ color:rgba(255,255,255,.14) }
+  .boot-kanji-fill{ background:linear-gradient(0deg,#F39800 0%,#FF7A45 45%,#FF4FA3 100%); -webkit-background-clip:text; background-clip:text; color:transparent; -webkit-text-fill-color:transparent; clip-path:inset(100% 0 0 0); animation:bootFill 3.3s ease-out forwards }
+  @keyframes bootFill{ from{ clip-path:inset(100% 0 0 0) } to{ clip-path:inset(0% 0 0 0) } }
+
+  /* 検索チャット */
+  .chat-fab{ position:fixed; right:20px; bottom:20px; z-index:55; width:54px; height:54px; border-radius:18px; border:0; background:#F39800; color:#fff; font-size:23px; box-shadow:var(--shadow); cursor:pointer; display:flex; align-items:center; justify-content:center }
+  .chat-panel{ position:fixed; right:20px; bottom:84px; z-index:55; width:340px; max-width:calc(100vw - 32px); height:440px; max-height:calc(100vh - 140px); background:var(--panel); border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow); display:flex; flex-direction:column; overflow:hidden; transition:opacity .2s ease, transform .2s ease }
+  .chat-panel.hide{ opacity:0; pointer-events:none; transform:translateY(10px) }
+  .chat-head{ padding:10px 12px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center }
+  .chat-head b{ font-size:14px }
+  .chat-msgs{ flex:1; overflow:auto; padding:10px 12px; display:flex; flex-direction:column; gap:8px; font-size:13px; line-height:1.6 }
+  .chat-msg{ max-width:88%; padding:8px 10px; border-radius:10px; word-break:break-word }
+  .chat-msg.bot{ background:var(--chip); align-self:flex-start }
+  .chat-msg.user{ background:#F39800; color:#fff; align-self:flex-end }
+  .chat-msg a{ color:inherit; text-decoration:underline }
+  .chat-input-row{ display:flex; gap:6px; padding:10px; border-top:1px solid var(--line) }
+  .chat-input-row .btn.primary{ background:#F39800; border-color:#F39800 }
+  .chat-input-row input{ flex:1; min-width:0 }
+  @media (max-width:480px){ .chat-panel{ right:12px; left:12px; width:auto; bottom:78px } .chat-fab{ right:14px; bottom:14px } }
 
   /* モーダル（チュートリアル・使い方ガイド） */
   .modal-wrap{ position:fixed; inset:0; background:rgba(15,20,30,.5); z-index:60; display:flex; align-items:center; justify-content:center; padding:16px }
@@ -247,7 +281,7 @@ window.PAMPH_FIREBASE_CONFIG = {
 
 <header class="appbar">
   <div class="appbar-in">
-    <div class="brand">
+    <div class="brand" id="brandTitle" title="クリックでオープニングアニメーションを再生">
       <img class="mk" src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAYEBQUFBAYFBQUHBgYHCQ8KCQgICRMNDgsPFhMXFxYTFRUYGyMeGBohGhUVHikfISQlJygnGB0rLismLiMmJyb/2wBDAQYHBwkICRIKChImGRUZJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJib/wAARCABgAGADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD0Syn0u7RHivF2sByY6vrZ2zfcu4n9gBmvE9M8TppsCwWulWqoo7yMSfrzV8eO7gZ/0C35/wCmjf4183yPsfRN9metNDbJKITKGlIyIwAWI9cVYGnRkZBYH/d/+tXjn/CbZuUujpNkbiNSqykneAeoz1q7H8Rb3coFpAMn++3+NVyLsQ2+jPR3iBPQcr6Vxngq0SzjaNMn5SxLeprvAPlU+nH9a4zw5IGnuFxjYSv61FZuyRvh1pL5HmduMllPPzY/WvdPEsSvNGxUN5iqDx6GvC7LJZgeu7P617p4ola3tllWGW4aJMiKIZZ/u8CuPDK6mvQ4MPpMINDlVFDTRxgdg+6ln0KG4aFppUma3kEkRY/cYdxzXzO3mb2x5mMn1pN7htp35r3VgYrqfa/6vy61v/Jf+CfUohu14F0mPrVGbRhNfRXskqtcRD5WJ+vbPvXzTmX0elBmz0f86r6kv5g/1cfSr/5L/wAE+gT8LvCIOBY3g4H/AC+v/jSH4ZeFE5Fldn63jn+tQtqd/n/j7n6f3zTTqd9/z+T/APfZr5v+2Kf8j/A+d+o1f5iY/DfwuB/x5XH/AIFP/jWZYfD7S/tU4vdMlESN+6aO8c5Hqc1abVL4f8vs/wD32ahfU77IP2yf8XNL+1oP7LKWCqfzI6uKUlCD2H8q5LQsC5use9bi3SLKRvX5hnrXN+HJw9xdkso+cgc9s16FbZGdDaXyPN9EeSS1ieUEO3UH619DXY3X0APTA/nXgOnhWYHjAfjn3r23xHcXEKpJZIs04X5VyPx7+lc2Gd5TfoebR1k0SwgDq8Y/4EKsAxY5ZT9MV85LBeEkk7ufpTzBe44Ug+pzXX7c9NYTzPoSaSIHAEZPp1qhclmBIEa8dTgV4WsF6B8xI+nFV7rTru4TZ5kyn1ycUKtd6g8L5n0NrF5LZWkbRWzTs7Km1RkjJxn8Kx/Ga5urT5duYen4mutC4Vf90VzXjUf6Zbf9cT/M16ODX708DMn/ALOzAuVDeH4gR1kIP5mut1WJZPDdkzAf8e+381rlbw+X4fjbHRyf1NdfenHhiAsQoEAOT0A2muCqv31Reb/M9aj/ALrRfkvyPjIs2T87dT/EaTc395vzq1pcFvdanBb3U/2e3kch5cgbRg888eldM+geGjPiDWjLCysQ/wBojX5xjbHggHLfMd2MDHfrXvnj3OPyf7x/Ol3PkfO3X+8a62LQvDO8+frnlxbA3mCaM5c5DRYAJymB8/3WzxjrXN6pBBa6ncW9rP8AaII3ASXIO4YHORx1z0oA9qsf9fb/AO+n8xXrPxAAOhTjA5uYe3+2K8lsT+/t/wDron8xXrnjkeZo0yjtcRH8mFfN0n7kj3pfxYf12OA8RWEN/pcEUq5CyqwI7GrhhENtbxqoUeXnH1OadeqTZ2/OMuB9eKnv+sY9ExXx+Zzl7dRvp/wDST949B2/KP8AdrmPGy4vbb/rj/U11OQAPmX7vrXL+NiPtlucj/U+vvX6Tg1+9R85mL/2d/L8zDulVtBiRuhc/wAzXVSKk/hyyjcBkktwCD0IKGuP1adLbw2kxBbYWO1eprp7O6RvCOlXLMoBtEY5PA+SvOqxftqj82evRf8AstL0X5Hxy4+8Bx1Arrhr/hwFWXw8qBZXd49isJ0O7ahJOUwSpyvpjpXJsrbm+Vup7Gkw391vyr3DyTq4ta8PRwSQrprkiNkik+zR53Ffvv8ANyQcYAIxycnOBya8YFLtb+635Uu1sj5W/KgD3CwP7+2/66J/MV674vIOlzf9dU/9CFePWBIntuD99O3uK9N8U2dyZbq9+0u0O6JFh7DDZzXzNP4ZHvtfvImHqguRpMLWkaST+YuxXOB26/hmpbk7lRu+DmrToRbWgKn/AFmensKgvhtCDHY18bmb/wBptb+rDk/fPKl8MeJjj/iR6l/35apB4W8Td9B1L/vw1enX/wAQNMN1bmy1SQQqR5qyWbnI9sVqD4jeGAP+P24/8BX/AMK/UFmr7I4Xhp9jx4eFvE3/AEAdS/78NTl8L+Jgy50LUsAj/lg1ewj4meFU6312fpaOf6Uf8LP8J55vrz/wDf8AwrRZo+yJ+r1OzNKO0iV3fylDyLljjrxXAzQqYm+UdfSvS23bwzY2kZA7gf8A6q89dfkcHsTXBR3Z6WEWkvkS3m37MRtXqO1GvXEdraSXMwUJGMg7fYD+ZqjqbXaTWyxKjW7tmVmblcLxgfWrfie3F5p0toTjzYiK817q5nRR2dtoMqxIGkSMADgPup8+gxXDQtNKszQSCSMsx+Rh3HNfPKRXgGGkDY/2sf1p/l3eOGGf96nzxWy/E19hJ/a/A+jxbXa8C5XH1zVGbRPOvor2SUNPEPlYn69s4PU18/rFeY+aQ/g2Kr3djdzxMgnlU+u84pqcW9SfqzW0vwPRn+Hd91N3AP8AgDf4VS/4Qo/aZLUatZG4jUM0QB3gHocda9ibUY27MOP73/16rLNbJIZhCGlIwZGILEemaXJDuQq1XqjyY+BrgY/0+35/6Zt/hVHUvDKabF591qtqqKR0jYknPTpXtTXdu337OJ/diM1n30GmXUbJLZrtPYSVPJHuWq0+qJnYqwl67wc+/pXClx8/vXYzyDyQAR8q8c1wYmz0I5z3r0aG7Lwr0kWdYOxYExnOGwKt6tlo0KjJxjHrWFr2owwX9vFLKqlmVBk9TjP9a3744RH7AZ4NedIzpKyPDDZrls725Paj7OgONrfrX03bpIwBCKM+2TVuKBchn2lh6kV9Ws4itqX4/wDAPi3kD/5/fh/wT5a+zjsG/WhbfkZ3YzX1QY4wScKc9SAP61XmSFgQ0SsD1BIp/wBsL/n3+P8AwBf2A/8An7+H/BP/2Q==" alt="IRODORI HOUSE" />
       <div><b>パンフレット発注管理</b><span>INOUE-GROUP</span></div>
     </div>
@@ -272,6 +306,29 @@ window.PAMPH_FIREBASE_CONFIG = {
 <div id="printArea" aria-hidden="true"></div>
 <div id="modal" class="modal-wrap hide"></div>
 <div id="tour" class="hide"></div>
+<div id="bootSplash" class="boot-splash" aria-hidden="true">
+  <div class="boot-stack">
+    <div class="boot-kanji">
+      <span class="boot-kanji-dim">INOUE GROUP</span>
+      <span class="boot-kanji-fill">INOUE GROUP</span>
+    </div>
+    <div class="boot-sub">Pamphlet Order Management App</div>
+  </div>
+</div>
+<button id="chatFab" class="chat-fab" type="button" title="検索チャット" aria-label="検索チャットを開く">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <rect x="3" y="4" width="18" height="13" rx="4" fill="#fff"/>
+    <path d="M8 17 L8 21 L12 17 Z" fill="#fff"/>
+  </svg>
+</button>
+<div id="chatPanel" class="chat-panel hide">
+  <div class="chat-head"><b>🔎 検索チャット</b><button type="button" class="modal-x" id="chatClose" aria-label="閉じる">×</button></div>
+  <div class="chat-msgs" id="chatMsgs"></div>
+  <div class="chat-input-row">
+    <input type="text" id="chatInput" placeholder="例）在庫は？／準備済みとは">
+    <button type="button" class="btn primary sm" id="chatSend">送信</button>
+  </div>
+</div>
 
 <script>
 (function(){
@@ -640,6 +697,35 @@ function boot(){
   $("#banner").addEventListener("click", e=>{ if(e.target.closest(".banner-x")) hideBanner(); });
   $("#modal").addEventListener("click", onModalClick);
   $("#tour").addEventListener("click", onTourClick);
+  const brandTitle = $("#brandTitle");
+  if(brandTitle) brandTitle.addEventListener("click", playBootSplash);
+
+  const chatFab = $("#chatFab"), chatPanel = $("#chatPanel"), chatClose = $("#chatClose"),
+        chatInput = $("#chatInput"), chatSend = $("#chatSend");
+  let chatBooted = false;
+  function sendChat(){
+    const v = (chatInput.value||"").trim();
+    if(!v) return;
+    pushChatMsg("user", esc(v));
+    chatInput.value = "";
+    const ans = chatAnswer(v);
+    setTimeout(function(){ pushChatMsg("bot", ans); }, 200);
+  }
+  if(chatFab && chatPanel){
+    chatFab.addEventListener("click", function(){
+      chatPanel.classList.toggle("hide");
+      if(!chatPanel.classList.contains("hide")){
+        if(!chatBooted){
+          chatBooted = true;
+          pushChatMsg("bot","こんにちは！パンフレットの在庫・発注状況や、アプリの使い方について質問できます。<br>例）「〇〇店の発注状況」「◯◯の在庫は？」「準備済みとは」");
+        }
+        if(chatInput) chatInput.focus();
+      }
+    });
+  }
+  if(chatClose && chatPanel) chatClose.addEventListener("click", ()=> chatPanel.classList.add("hide"));
+  if(chatSend) chatSend.addEventListener("click", sendChat);
+  if(chatInput) chatInput.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); sendChat(); } });
   document.addEventListener("keydown", e=>{
     const tourOpen = !$("#tour").classList.contains("hide");
     if(e.key==="Escape"){
@@ -697,9 +783,11 @@ const TOURS = {
     { sel:'[data-act="orderer"]', html:'<b>③ 担当者名</b><br>入力するご自身の名前を入れます（例：鈴木）。' },
     { sel:'.grid .card', html:'<b>④ 数量を選ぶ</b><br>表紙を見ながら、下のプルダウンで必要数を選びます。入れると<b>赤字</b>に（0はグレー）。「束」の種類は束数で。必要なものだけでOK。' },
     { sel:'[data-act="submit"]', html:'<b>⑤ 提出する</b><br>入力し終えたらこのボタンを押すと担当者に通知メールが届きます（自動保存されているので押し忘れても内容は残ります）。' },
+    { sel:null, title:"提出したあとで追加・修正したいとき", html:'<div class="big">提出したあとでも、<b>同じ「対象月」「店舗」を選び直す</b>と、それまで入力した内容がそのまま表示されます。数量を直して、もう一度<b>「この内容で提出」</b>を押せば、前の内容が新しい内容に<b>上書きで更新</b>されます（提出し直しになるので、別の記録が増えることはありません）。</div>' },
     { sel:'[data-act="submit-none"]', html:'<b>今月は発注なし</b><br>その月に発注が無いときはこちらを押します。押さないと「未提出」の店舗として残ります。' },
     { sel:'[data-act="open-guide"]', html:'<b>使い方ガイド</b><br>分からなくなったら、いつでもここから説明とこのツアーを見られます。' },
     { sel:'#tabs button[data-tab="feedback"]', html:'<b>意見箱</b><br>このアプリやパンフレットについて、気づいたこと・ご要望があれば「意見箱」タブからお気軽にお寄せください。担当者に届きます。', optional:true },
+    { sel:'#chatPanel', html:'<b>🔎 検索チャット</b><br>画面右下のボタンから開けます。パンフレットの在庫・発注状況の確認や、使い方の質問ができます（例：「準備済みとは」「〇〇店の発注状況」）。AIとの会話ではなく、アプリ内のキーワード検索です。<br><span class="dim2">※いまは説明用のサンプルのやり取りを表示しています。</span>', optional:true, onEnter: openChatDemo },
     { sel:null, title:"準備OK！", html:'<div class="big">説明は以上です。さっそく入力してみましょう。</div>', last:true }
   ],
   submitted: [
@@ -779,6 +867,7 @@ const GUIDES = {
 function guideTitle(tab){ return tab==="submitted" ? "使い方ガイド（提出済み）" : tab==="history" ? "使い方ガイド（履歴）" : tab==="stock" ? "使い方ガイド（在庫管理）" : "使い方ガイド（発注）"; }
 
 let tourTab = "order", tourIdx = 0, tourFromGuide = false, tourReturnState = null;
+let tourStepCleanup = null, tourStepCleanupIdx = -1;
 function tourDoneKey(tab){ return "pamph_tut_"+tab+"_v1"; }
 function markTourDone(tab){ try{ localStorage.setItem(tourDoneKey(tab||tourTab),"1"); }catch(e){} }
 function syncTabButtons(){ $$("#tabs button").forEach(x=> x.setAttribute("aria-selected", x.dataset.tab===UI.tab ? "true":"false")); }
@@ -824,6 +913,7 @@ function startTour(tab, fromGuide){
 function onTourResize(){ if(!$("#tour").classList.contains("hide")) showTourStep(); }
 function closeTourDom(){ const t=$("#tour"); t.className="hide"; t.innerHTML=""; window.removeEventListener("resize", onTourResize); }
 function endTour(mode){
+  if(tourStepCleanup){ try{ tourStepCleanup(); }catch(e){} tourStepCleanup=null; tourStepCleanupIdx=-1; }
   closeTourDom();
   markTourDone(tourTab);
   UI.tourPreview = false;
@@ -839,7 +929,17 @@ function showTourStep(){
   const steps = TOURS[tourTab] || [];
   if(tourIdx<0) tourIdx=0;
   if(tourIdx>=steps.length){ endTour(); return; }
+  if(tourStepCleanup && tourStepCleanupIdx !== tourIdx){
+    try{ tourStepCleanup(); }catch(e){}
+    tourStepCleanup = null; tourStepCleanupIdx = -1;
+  }
   const s = steps[tourIdx];
+  if(s.onEnter && tourStepCleanupIdx !== tourIdx){
+    try{
+      const cleanup = s.onEnter();
+      if(typeof cleanup === "function"){ tourStepCleanup = cleanup; tourStepCleanupIdx = tourIdx; }
+    }catch(e){}
+  }
   let el = s.sel ? document.querySelector(s.sel) : null;
   if(s.sel && !el && tourIdx < steps.length-1){ tourIdx++; return showTourStep(); }
   if(el && el.scrollIntoView){ el.scrollIntoView({block:"center"}); }
@@ -871,10 +971,12 @@ function showTourStep(){
       const p = 6;
       const hx = Math.max(4, r.left-p), hy = Math.max(4, r.top-p);
       holeHtml = '<div class="tour-hole" style="left:'+hx+'px;top:'+hy+'px;width:'+(r.width+p*2)+'px;height:'+(r.height+p*2)+'px"></div>';
-      const vw = window.innerWidth, vh = window.innerHeight, tw = 320;
-      if(vw - r.right > tw + 24) tipStyle = 'left:'+(r.right+16)+'px;top:'+Math.max(12, Math.min(r.top, vh-260))+'px';
-      else if(vh - r.bottom > 220) tipStyle = 'left:'+Math.max(12, Math.min(r.left, vw-tw-16))+'px;top:'+(r.bottom+16)+'px';
-      else tipStyle = 'left:'+Math.max(12, Math.min(r.left, vw-tw-16))+'px;top:'+Math.max(12, r.bottom-260)+'px';
+      const vw = window.innerWidth, vh = window.innerHeight, tw = 320, th = 260;
+      if(vw - r.right > tw + 24) tipStyle = 'left:'+(r.right+16)+'px;top:'+Math.max(12, Math.min(r.top, vh-th))+'px';
+      else if(vh - r.bottom > th + 24) tipStyle = 'left:'+Math.max(12, Math.min(r.left, vw-tw-16))+'px;top:'+(r.bottom+16)+'px';
+      else if(r.top > th + 24) tipStyle = 'left:'+Math.max(12, Math.min(r.left, vw-tw-16))+'px;top:'+Math.max(12, r.top-16-th)+'px';
+      else if(r.left > tw + 24) tipStyle = 'left:'+Math.max(12, r.left-16-tw)+'px;top:'+Math.max(12, Math.min(r.top, vh-th))+'px';
+      else tipStyle = 'left:'+Math.max(12, Math.min(r.left, vw-tw-16))+'px;top:'+Math.max(12, r.bottom-th)+'px';
     }
     tour.className = centered ? "dim" : "";
     tour.innerHTML = holeHtml + '<div class="tour-tip'+(centered?" center":"")+'"'+(centered?"":' style="'+tipStyle+'"')+'>'+nav+'</div>';
@@ -1567,6 +1669,24 @@ function viewFeedback(){
     activeStores().map(s=> '<option value="'+esc(s.name)+'" '+(s.id===UI.storeId?"selected":"")+'>'+esc(s.name)+'</option>')
   ).join("");
   const gOpts = FB_GENRES.map(g=> '<option value="'+esc(g)+'">'+esc(g)+'</option>').join("");
+
+  const list = Object.values(DB.feedback||{}).sort((a,b)=> String(b.createdAt||"").localeCompare(String(a.createdAt||"")));
+  const histRows = list.map(f=>{
+    return '<div class="fb-item">'+
+      '<div class="fb-item-head">'+
+        '<span class="muted">'+esc(fmtDT(f.createdAt))+'</span>'+
+        (f.store? '<span class="pill" style="background:var(--chip);color:var(--ink)">'+esc(f.store)+'</span>':'')+
+        (f.genre? '<span class="muted">'+esc(f.genre)+'</span>':'')+
+        (f.name? '<span class="muted">'+esc(f.name)+'</span>':'')+
+      '</div>'+
+      '<div class="fb-item-body">'+esc(f.text||"")+'</div>'+
+      '<div class="fb-item-resp">'+
+        '<label>対応・返信（みんなで共有されます）</label>'+
+        '<textarea data-act="fb-resp" data-id="'+f.id+'" data-fk="fbr-'+f.id+'" placeholder="対応した内容や返信があれば記入してください">'+esc(f.response||"")+'</textarea>'+
+      '</div>'+
+    '</div>';
+  }).join("");
+
   return '<section class="panel">'+
     '<h2>意見箱</h2>'+
     '<div class="sub">このアプリやパンフレットについて、お気軽にご意見・ご要望をお寄せください。送信すると担当者にメールで届きます。</div>'+
@@ -1577,6 +1697,11 @@ function viewFeedback(){
       '<div class="fld"><label>ご意見・ご要望</label><textarea id="fb-body" data-fk="fb-body" style="min-height:120px" placeholder="自由にご記入ください"></textarea></div>'+
       '<div><button class="btn primary" data-act="fb-send">送信する</button></div>'+
     '</div>'+
+    '</section>'+
+    '<section class="panel">'+
+      '<h2>過去の意見・ご要望</h2>'+
+      '<div class="sub">これまでに届いたご意見と、その対応内容を全員で共有できます。対応欄はその場で編集・保存されます。</div>'+
+      (histRows || '<p class="muted">まだ投稿はありません。</p>')+
     '</section>';
 }
 
@@ -1737,6 +1862,9 @@ async function onChange(e){
 
   /* 提出済み */
   if(a==="sub-month"){ UI.subMonth=t.value; renderAll(); return; }
+
+  /* 意見箱 */
+  if(a==="fb-resp"){ await store.merge("feedback", id, {response:t.value, respondedAt: t.value.trim()? now() : "", updatedAt:now()}); return; }
 
   /* 集計・印刷発注 */
   if(a==="summonth"){ UI.sumMonth=t.value; renderAll(); return; }
@@ -2053,8 +2181,142 @@ function maybeAutoPick(){
   loadDraftFor(UI.month, UI.storeId);
 }
 
+/* ---------- 検索チャット（AIなし・キーワード方式・完全無料） ---------- */
+const FAQ = [
+  { kw:["パスワード","忘れ","わからない"], a:"パスワードは「設定」タブの管理担当者にご確認ください。このパスワードは情報保護ではなく<b>誤操作防止</b>が目的のものです。" },
+  { kw:["束","部","単位","違い"], a:"パンフレットは種類ごとに「束」または「部」で管理されています。「束」の種類は目安部数（既定40部）をかけた「約◯部」に自動換算されます。" },
+  { kw:["準備済","受け取り"], a:"管理担当者が発送準備を完了すると「準備済」になり、店舗の担当者へ「受け取り、または受け取りされる方への手配をお願いします」という通知メールが自動送信されます。" },
+  { kw:["意見箱","要望","フィードバック"], a:"「意見箱」タブから、アプリやパンフレットについての気づき・ご要望を送信できます。担当者に通知メールが届きます。" },
+  { kw:["印刷発注","納品","発注済"], a:"「印刷発注」タブでは、依頼中→発注済→納品済の順に状態を管理します。「納品済」にすると、その部数が自動的に在庫管理タブの在庫数に加算されます。" },
+  { kw:["在庫","自動","増減"], a:"在庫管理タブでは、提出済みタブで「準備済にする」と自動で在庫が減り、印刷発注タブで「納品済」にすると自動で増えます。数量欄に直接入力して手動で修正することもできます。" },
+  { kw:["ブランド","色","丸","彩ハウス","fproducts","f.products"], a:"表紙の左上の丸の色でブランドが分かります。オレンジ＝彩ハウス、緑＝F.PRODUCTS、色が付いていない丸＝共通です。" },
+  { kw:["提出","直","修正","やり直"], a:"提出したあとでも、同じ「対象月」「店舗」を選び直せば前回の内容が表示されます。数量を直してもう一度「この内容で提出」を押せば上書きで更新されます。" },
+  { kw:["発注なし"], a:"その月に発注が無いときは「発注」タブの「今月は発注なしで提出」を押してください。押さないと「未提出」のまま店舗が残ってしまいます。" },
+  { kw:["メール","通知","届かない"], a:"メール通知が届かない場合は、設定タブの「メール通知」欄が有効になっているか、店舗のメールアドレスが登録されているかをご確認ください。" },
+  { kw:["チュートリアル","使い方","もう一度"], a:"各タブの「📖 使い方ガイド」ボタンから、いつでも使い方の説明とチュートリアル（案内ツアー）を見返せます。" },
+  { kw:["ローカル","demo","デモ"], a:"右上に「● ローカル demo モード」と出ている場合は、この端末だけにデータが保存されている状態です。全店舗で共有するには正しいURL（https://inoue-group.github.io/pamphlet/）を開いてください。" },
+  { kw:["印刷","色","出ない","背景"], a:"印刷時に色（見出し帯など）が出ない場合は、印刷ダイアログで「背景のグラフィック」をオンにしてください。用紙はA4横がおすすめです。" },
+  { kw:["エクスポート","バックアップ","インポート"], a:"設定タブの「データのバックアップ」から、全データをJSONで書き出し・読み込みできます。定期的なバックアップにご利用ください。" }
+];
+function findEntity(list, nameFn, q){
+  let best = null, bestLen = 0;
+  list.forEach(item=>{
+    const nm = nameFn(item);
+    if(nm && q.indexOf(nm) >= 0 && nm.length > bestLen){ best = item; bestLen = nm.length; }
+  });
+  return best;
+}
+function chatAnswer(qRaw){
+  const q = String(qRaw||"").trim();
+  if(!q) return "何か聞きたいことを入力してください。";
+
+  const type = findEntity(Object.values(DB.pamphletTypes), t=>t.name, q);
+  const store = findEntity(activeStores(), s=>s.name, q);
+  const catalog = findEntity(Object.values(DB.catalogs), c=>c.title, q);
+
+  if(type && /在庫/.test(q)){
+    if(!settingsUnlocked()) return "ご質問の内容はパスワードで保護されています。ご質問がある場合は、管理担当者（岡田）へご連絡ください。";
+    return "「"+esc(type.name)+"」の現在の在庫は <b>"+num(type.stockQty)+" 部</b> です。";
+  }
+  if(catalog && /(カタログ|url|リンク|開く)/i.test(q) || (catalog && !type && !store)){
+    const u = catalog.url||"";
+    return "「"+esc(catalog.title)+"」のURL：<br>"+(u?'<a href="'+esc(u)+'" target="_blank" rel="noopener">'+esc(u)+'</a>':"（URL未登録です）");
+  }
+  if(store && /(発注|提出|状況|状態)/.test(q)){
+    const m = UI.month || todayMonth();
+    const sh = DB.orderSheets[sheetId(m, store.id)];
+    if(!isSubmitted(sh)) return esc(store.name)+"の"+esc(m)+"分は、まだ提出されていません。";
+    const items = Object.entries(sh.lines||{}).filter(([,v])=>num(v)>0);
+    const copies = items.reduce((a,[tid,v])=> a+toCopies(DB.pamphletTypes[tid],v), 0);
+    return esc(store.name)+"の"+esc(m)+"分：<b>"+esc(sh.status||"")+"</b>／"+items.length+"品目／約"+copies+"部（担当："+esc(sh.orderer||"—")+"）";
+  }
+  if(type){
+    const bd = type.brand==="sai" ? "彩ハウス" : type.brand==="fp" ? "F.PRODUCTS" : "共通";
+    const stockPart = settingsUnlocked() ? "／現在の在庫="+num(type.stockQty)+"部" : "";
+    return "「"+esc(type.name)+"」：ブランド="+bd+"／単位="+unitOf(type)+stockPart;
+  }
+
+  let bestFaq=null, bestScore=0;
+  FAQ.forEach(item=>{
+    let score=0;
+    item.kw.forEach(k=>{ if(q.indexOf(k)>=0) score++; });
+    if(score>bestScore){ bestScore=score; bestFaq=item; }
+  });
+  if(bestFaq) return bestFaq.a;
+
+  const allNames = []
+    .concat(Object.values(DB.pamphletTypes).map(t=>t.name))
+    .concat(activeStores().map(s=>s.name))
+    .concat(Object.values(DB.catalogs).map(c=>c.title))
+    .filter(Boolean);
+  const hits = allNames.filter(n=> q.indexOf(n)>=0 || n.indexOf(q)>=0).slice(0,5);
+  if(hits.length) return "もしかして次のことですか？<br>"+hits.map(esc).join("　／　");
+
+  return "ごめんなさい、うまく見つけられませんでした。使い方ガイドや「意見箱」タブからもお問い合わせいただけます。";
+}
+function pushChatMsg(role, html){
+  const wrap = $("#chatMsgs"); if(!wrap) return;
+  const d = document.createElement("div");
+  d.className = "chat-msg " + (role==="user" ? "user" : "bot");
+  d.innerHTML = html;
+  wrap.appendChild(d);
+  wrap.scrollTop = wrap.scrollHeight;
+}
+function openChatDemo(){
+  const panel = $("#chatPanel"), wrap = $("#chatMsgs");
+  if(!panel || !wrap) return closeChatDemo;
+  panel.dataset.demoSaved = "1";
+  panel.dataset.demoWasHidden = panel.classList.contains("hide") ? "1" : "0";
+  panel.dataset.demoHtml = wrap.innerHTML;
+  panel.classList.remove("hide");
+  wrap.innerHTML = "";
+  const demoQ = "準備済みとは？";
+  pushChatMsg("user", esc(demoQ));
+  pushChatMsg("bot", chatAnswer(demoQ));
+  return closeChatDemo;
+}
+function closeChatDemo(){
+  const panel = $("#chatPanel"), wrap = $("#chatMsgs");
+  if(!panel || !wrap || panel.dataset.demoSaved !== "1") return;
+  wrap.innerHTML = panel.dataset.demoHtml || "";
+  if(panel.dataset.demoWasHidden === "1") panel.classList.add("hide");
+  delete panel.dataset.demoSaved; delete panel.dataset.demoWasHidden; delete panel.dataset.demoHtml;
+}
+
 /* ---------- go ---------- */
+let bootSplashTimer = null;
+function scheduleBootSplashHide(){
+  if(bootSplashTimer) clearTimeout(bootSplashTimer);
+  bootSplashTimer = setTimeout(function(){
+    const el = $("#bootSplash");
+    if(el) el.classList.add("hide");
+  }, 3400);
+}
+function playBootSplash(){
+  const el = $("#bootSplash");
+  if(!el) return;
+  const fill = el.querySelector(".boot-kanji-fill");
+  el.classList.remove("hide");
+  if(fill){ fill.style.animation = "none"; void fill.offsetWidth; fill.style.animation = ""; }
+  scheduleBootSplashHide();
+}
+function initBootSplash(){
+  const el = $("#bootSplash");
+  if(!el) return;
+  let fresh = true;
+  try{
+    if(location.search.indexOf("shot")>=0) fresh = false;
+    else{
+      const nav = performance && performance.getEntriesByType ? performance.getEntriesByType("navigation")[0] : null;
+      if(nav) fresh = nav.type !== "reload";
+      else if(performance && performance.navigation) fresh = performance.navigation.type !== 1;
+    }
+  }catch(e){}
+  if(!fresh){ el.classList.add("hide"); return; }
+  scheduleBootSplashHide();
+}
 function start(){
+  initBootSplash();
   boot(); loadDraftFor(UI.month, UI.storeId); renderAll();
   try{
     const forced = new URLSearchParams(location.search).get("tour");
