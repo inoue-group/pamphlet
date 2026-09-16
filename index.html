@@ -236,7 +236,7 @@ window.PAMPH_FIREBASE_CONFIG = {
   .boot-stack{ display:flex; flex-direction:column; align-items:center; gap:8px }
   .boot-sub{ color:rgba(255,255,255,.5); font-size:clamp(10px,1.7vw,13px); font-weight:600; letter-spacing:.2em; text-transform:uppercase; font-family:"Bahnschrift SemiBold","Bahnschrift","Segoe UI","Helvetica Neue",Arial,sans-serif; white-space:nowrap }
   .boot-kanji{ position:relative; width:min(94vw,760px); height:130px }
-  .boot-kanji-dim, .boot-kanji-fill{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:clamp(36px,8.4vw,76px); font-weight:600; letter-spacing:.06em; line-height:1; font-family:"Bahnschrift SemiBold","Bahnschrift","Segoe UI","Helvetica Neue",Arial,sans-serif; user-select:none; white-space:nowrap }
+  .boot-kanji-dim, .boot-kanji-fill{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:clamp(36px,8.4vw,76px); font-weight:600; letter-spacing:.015em; line-height:1; font-family:"Bahnschrift SemiBold","Bahnschrift","Segoe UI","Helvetica Neue",Arial,sans-serif; user-select:none; white-space:nowrap }
   .boot-kanji-dim{ color:rgba(255,255,255,.14) }
   .boot-kanji-fill{ background:linear-gradient(0deg,#F39800 0%,#FF7A45 45%,#FF4FA3 100%); -webkit-background-clip:text; background-clip:text; color:transparent; -webkit-text-fill-color:transparent; clip-path:inset(100% 0 0 0); animation:bootFill 3.3s ease-out forwards }
   @keyframes bootFill{ from{ clip-path:inset(100% 0 0 0) } to{ clip-path:inset(0% 0 0 0) } }
@@ -2375,9 +2375,12 @@ function typeMonthlyTotals(typeId, months){
     return raw;
   });
 }
+const CHAT_NG_WORDS = ["セックス","えっち","エッチ","ちんこ","ちんちん","ちんぽ","まんこ","おっぱい","フェラ","パイズリ","ヤリマン","ヤリチン","中出し","レイプ","強姦","ロリ","ペニス","ヴァギナ","バギナ","射精","勃起","風俗","援交","乳首","局部","エロ","アダルト","うんち","うんこ","death","fuck","shit"];
 function chatAnswer(qRaw){
   const q = String(qRaw||"").trim();
   if(!q) return "何か聞きたいことを入力してください。";
+  const qLower = q.toLowerCase();
+  if(CHAT_NG_WORDS.some(w=> qLower.indexOf(w.toLowerCase())>=0)) return "仕事してください(笑)";
 
   const type = findTypeEntity(q);
   const store = findEntity(activeStores(), s=>s.name, q);
