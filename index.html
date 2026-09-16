@@ -73,7 +73,7 @@ window.PAMPH_FIREBASE_CONFIG = {
   .badge b{color:var(--ink)}
   .badge.alert{background:color-mix(in srgb, var(--danger) 14%, transparent); color:var(--danger)}
 
-  .tabs{max-width:1180px; margin:0 auto; padding:10px 16px 0; display:flex; gap:6px; flex-wrap:wrap}
+  .tabs{max-width:1180px; margin:0 auto; padding:10px 16px 12px; display:flex; gap:6px; flex-wrap:wrap}
   .tabs button{position:relative; border:1px solid var(--line); background:var(--panel); color:var(--ink-soft); padding:8px 14px; border-radius:999px; font-size:13px; font-weight:700; cursor:pointer}
   .tabs button[aria-selected="true"]{background:#F39800; border-color:#F39800; color:#fff}
   .tab-badge{position:absolute; top:-5px; right:-5px; min-width:17px; height:17px; padding:0 4px; border-radius:999px; background:var(--danger); color:#fff; font-size:10px; line-height:17px; text-align:center; font-weight:700; box-shadow:0 0 0 2px var(--panel)}
@@ -325,7 +325,7 @@ window.PAMPH_FIREBASE_CONFIG = {
   <div class="chat-head"><b>🔎 検索チャット</b><button type="button" class="modal-x" id="chatClose" aria-label="閉じる">×</button></div>
   <div class="chat-msgs" id="chatMsgs"></div>
   <div class="chat-input-row">
-    <input type="text" id="chatInput" placeholder="例）在庫は？／準備済みとは">
+    <input type="text" id="chatInput" placeholder="例）在庫は？／発注推移／準備済みとは">
     <button type="button" class="btn primary sm" id="chatSend">送信</button>
   </div>
 </div>
@@ -744,7 +744,7 @@ function boot(){
       if(!chatPanel.classList.contains("hide")){
         if(!chatBooted){
           chatBooted = true;
-          pushChatMsg("bot","こんにちは！パンフレットの在庫・発注状況や、アプリの使い方について質問できます。<br>例）「〇〇店の発注状況」「◯◯の在庫は？」「準備済みとは」");
+          pushChatMsg("bot","こんにちは！パンフレットの在庫・発注状況・過去の履歴や、アプリの使い方について質問できます。<br>例）「〇〇店の8月の発注状況」「◯◯の在庫は？」「◯◯の発注推移」「◯◯の印刷発注状況」「準備済みとは」");
         }
         if(chatInput) chatInput.focus();
       }
@@ -2245,6 +2245,32 @@ function findTypeEntity(q){
   });
   return best;
 }
+function parseMonthFromQuery(q){
+  let m = q.match(/(20\d{2})[-\/年](\d{1,2})月?/);
+  if(m) return m[1]+"-"+pad2(m[2]);
+  if(/今月/.test(q)) return todayMonth();
+  if(/先々月/.test(q)) return monthsAgo(2);
+  if(/先月/.test(q)) return monthsAgo(1);
+  const mm = q.match(/(\d{1,2})月/);
+  if(mm){
+    const mo = parseInt(mm[1],10);
+    if(mo>=1 && mo<=12){
+      const now = new Date();
+      let yr = now.getFullYear();
+      if(/去年|昨年/.test(q)) yr -= 1;
+      else if(mo > now.getMonth()+1) yr -= 1; // 今年まだ来ていない月＝去年のことと推定
+      return yr+"-"+pad2(mo);
+    }
+  }
+  return null;
+}
+function typeMonthlyTotals(typeId, months){
+  return months.map(m=>{
+    let raw=0;
+    Object.values(DB.orderSheets).forEach(sh=>{ if(sh.month===m) raw += num((sh.lines||{})[typeId]); });
+    return raw;
+  });
+}
 function chatAnswer(qRaw){
   const q = String(qRaw||"").trim();
   if(!q) return "何か聞きたいことを入力してください。";
@@ -2252,17 +2278,46 @@ function chatAnswer(qRaw){
   const type = findTypeEntity(q);
   const store = findEntity(activeStores(), s=>s.name, q);
   const catalog = findEntity(Object.values(DB.catalogs), c=>c.title, q);
+  const monthQ = parseMonthFromQuery(q);
+  const PW_MSG = "ご質問の内容はパスワードで保護されています。ご質問がある場合は、管理担当者（岡田）へご連絡ください。";
 
+  if(type && /在庫/.test(q) && /(履歴|理由|いつ|経緯)/.test(q)){
+    if(!settingsUnlocked()) return PW_MSG;
+    const logs = Object.values(DB.stockLogs).filter(l=>l.typeId===type.id)
+      .sort((a,b)=> String(b.createdAt||"").localeCompare(String(a.createdAt||""))).slice(0,5);
+    if(!logs.length) return "「"+esc(type.name)+"」の在庫増減履歴はまだありません。";
+    const rows = logs.map(l=>{
+      const d = num(l.delta);
+      return esc(fmtDT(l.createdAt))+"　"+(d>0?"+":"")+d+"部（"+esc(stockReasonLabel(l.reason))+"）";
+    }).join("<br>");
+    return "「"+esc(type.name)+"」の直近の在庫増減（新しい順）：<br>"+rows+"<br>在庫管理タブで表紙をクリックすると、もっと詳しく見られます。";
+  }
   if(type && /在庫/.test(q)){
-    if(!settingsUnlocked()) return "ご質問の内容はパスワードで保護されています。ご質問がある場合は、管理担当者（岡田）へご連絡ください。";
+    if(!settingsUnlocked()) return PW_MSG;
     return "「"+esc(type.name)+"」の現在の在庫は <b>"+num(type.stockQty)+" 部</b> です。";
+  }
+  if(type && /(印刷発注|納品|発注済|依頼中)/.test(q)){
+    if(!settingsUnlocked()) return PW_MSG;
+    const pos = Object.values(DB.printOrders).filter(p=>p.typeId===type.id)
+      .sort((a,b)=> String(b.createdAt||"").localeCompare(String(a.createdAt||""))).slice(0,5);
+    if(!pos.length) return "「"+esc(type.name)+"」の印刷発注の記録はまだありません。";
+    const rows = pos.map(p=> esc(p.month||"")+"分　"+num(p.qty)+"部　<b>"+esc(p.status||"依頼中")+"</b>"+(p.dueDate?"（納品目安："+esc(p.dueDate)+"）":"")).join("<br>");
+    return "「"+esc(type.name)+"」の印刷発注状況（新しい順）：<br>"+rows;
+  }
+  if(type && /(推移|履歴|傾向|実績)/.test(q)){
+    const months = monthRange(monthsAgo(5), todayMonth());
+    const totals = typeMonthlyTotals(type.id, months);
+    const u = unitOf(type);
+    const rows = months.map((m,i)=> esc(m)+"："+totals[i]+u).join("　／　");
+    const sum = totals.reduce((a,b)=>a+b,0);
+    return "「"+esc(type.name)+"」の発注推移（直近6か月・単位="+u+"）：<br>"+rows+"<br>合計："+sum+u+"（詳しくは「履歴」タブでご確認いただけます）";
   }
   if(catalog && /(カタログ|url|リンク|開く)/i.test(q) || (catalog && !type && !store)){
     const u = catalog.url||"";
     return "「"+esc(catalog.title)+"」のURL：<br>"+(u?'<a href="'+esc(u)+'" target="_blank" rel="noopener">'+esc(u)+'</a>':"（URL未登録です）");
   }
   if(store && /(発注|提出|状況|状態)/.test(q)){
-    const m = UI.month || todayMonth();
+    const m = monthQ || UI.month || todayMonth();
     const sh = DB.orderSheets[sheetId(m, store.id)];
     if(!isSubmitted(sh)) return esc(store.name)+"の"+esc(m)+"分は、まだ提出されていません。";
     const items = Object.entries(sh.lines||{}).filter(([,v])=>num(v)>0);
@@ -2273,6 +2328,20 @@ function chatAnswer(qRaw){
     const bd = type.brand==="sai" ? "彩ハウス" : type.brand==="fp" ? "F.PRODUCTS" : "共通";
     const stockPart = settingsUnlocked() ? "／現在の在庫="+num(type.stockQty)+"部" : "";
     return "「"+esc(type.name)+"」：ブランド="+bd+"／単位="+unitOf(type)+stockPart;
+  }
+
+  if(/(意見|要望|クレーム|フィードバック|問い合わせ|苦情)/.test(q)){
+    const words = q.replace(/意見箱|意見|要望|クレーム|フィードバック|問い合わせ|苦情|について|教えて|ください|は|の|を|が|？|\?/g,"").trim();
+    if(words.length>=2){
+      const items = Object.values(DB.feedback||{}).filter(f=>{
+        const hay = (f.text||"")+" "+(f.response||"")+" "+(f.store||"")+" "+(f.genre||"");
+        return hay.indexOf(words)>=0;
+      }).sort((a,b)=> String(b.createdAt||"").localeCompare(String(a.createdAt||""))).slice(0,3);
+      if(items.length){
+        const rows = items.map(f=> esc(fmtDT(f.createdAt))+"　"+(f.store?"「"+esc(f.store)+"」　":"")+esc((f.text||"").slice(0,60))+(f.response? "<br>→対応："+esc(f.response.slice(0,60)) : "（未対応）")).join("<br><br>");
+        return "意見箱から見つかりました：<br>"+rows;
+      }
+    }
   }
 
   let bestFaq=null, bestScore=0;
