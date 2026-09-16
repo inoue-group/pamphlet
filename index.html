@@ -79,13 +79,14 @@ window.PAMPH_FIREBASE_CONFIG = {
   .tab-badge{position:absolute; top:-5px; right:-5px; min-width:17px; height:17px; padding:0 4px; border-radius:999px; background:var(--danger); color:#fff; font-size:10px; line-height:17px; text-align:center; font-weight:700; box-shadow:0 0 0 2px var(--panel)}
 
   main{max-width:1180px; margin:0 auto; padding:16px}
-  .banner{margin:12px auto 0; max-width:1180px; padding:10px 14px; border-radius:12px; font-size:13px;
-    display:flex; align-items:flex-start; gap:12px;
-    background:var(--accent-soft); color:var(--accent-ink); border:1px solid color-mix(in srgb,var(--accent) 30%, var(--line))}
+  .banner{position:fixed; top:12px; left:50%; transform:translateX(-50%); z-index:120; width:calc(100% - 32px); max-width:640px; padding:10px 14px; border-radius:12px; font-size:13px;
+    display:flex; align-items:flex-start; gap:12px; box-shadow:var(--shadow);
+    background:color-mix(in srgb, var(--accent-soft) 86%, transparent);
+    color:var(--accent-ink); border:1px solid color-mix(in srgb,var(--accent) 30%, var(--line))}
   .banner .banner-msg{flex:1}
   .banner .banner-x{flex:none; background:transparent; border:0; color:inherit; font-size:18px; line-height:1; cursor:pointer; padding:0 2px; opacity:.55}
   .banner .banner-x:hover{opacity:1}
-  .banner.err{background:color-mix(in srgb,var(--danger) 12%,transparent); color:var(--danger); border-color:color-mix(in srgb,var(--danger) 35%,var(--line))}
+  .banner.err{background:color-mix(in srgb,var(--danger) 22%,transparent); color:var(--danger); border-color:color-mix(in srgb,var(--danger) 35%,var(--line))}
   .banner.hide{display:none}
 
   .panel{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px; margin-bottom:16px}
@@ -158,6 +159,16 @@ window.PAMPH_FIREBASE_CONFIG = {
   .short{width:74px}
   .muted{color:var(--ink-soft); font-size:12px}
   .rowline{display:flex; gap:8px; align-items:center; padding:8px 0; border-bottom:1px dashed var(--line); flex-wrap:wrap}
+  .type-rows-wrap{overflow-x:auto; padding-bottom:4px}
+  .rowline.nowrap{flex-wrap:nowrap; min-width:max-content}
+  .rowline.nowrap input.grow{flex:none; width:170px}
+  .drag-handle{flex:none; cursor:grab; font-size:18px; color:var(--ink-soft); padding:0 4px; user-select:none}
+  .drag-handle:active{cursor:grabbing}
+  .rowline.nowrap{position:relative}
+  .rowline.drag-over-before::before, .rowline.drag-over-after::after{
+    content:""; position:absolute; left:0; right:0; height:3px; background:#F39800; border-radius:2px; z-index:1}
+  .rowline.drag-over-before::before{top:-2px}
+  .rowline.drag-over-after::after{bottom:-2px}
   .rowline:last-child{border-bottom:0}
   .grow{flex:1 1 160px}
   .hist-note{font-size:12px; color:var(--ink-soft)}
@@ -736,6 +747,52 @@ function boot(){
   v.addEventListener("click", onClick);
   v.addEventListener("input", onInput);
 
+  let dragTypeId = null;
+  function clearDragIndicators(){
+    $$(".rowline.drag-over-before, .rowline.drag-over-after").forEach(x=> x.classList.remove("drag-over-before","drag-over-after"));
+  }
+  function dropPos(list, srcId, targetId, before){
+    const i = list.findIndex(x=>x.id===srcId), t = list.findIndex(x=>x.id===targetId);
+    if(i<0 || t<0) return null;
+    const j = before ? (i<t ? t-1 : t) : (i<t ? t : t+1);
+    return j+1; // 1始まりの最終順位
+  }
+  v.addEventListener("dragstart", e=>{
+    const h = e.target.closest(".drag-handle"); if(!h) return;
+    dragTypeId = h.dataset.id;
+    try{ e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", dragTypeId); }catch(err){}
+  });
+  v.addEventListener("dragover", e=>{
+    if(!dragTypeId) return;
+    const row = e.target.closest(".rowline[data-tid]"); if(!row) return;
+    e.preventDefault();
+    const r = row.getBoundingClientRect();
+    const before = (e.clientY - r.top) < r.height/2;
+    clearDragIndicators();
+    row.classList.add(before ? "drag-over-before" : "drag-over-after");
+  });
+  v.addEventListener("dragleave", e=>{
+    const row = e.target.closest(".rowline[data-tid]");
+    if(row && !row.contains(e.relatedTarget)) row.classList.remove("drag-over-before","drag-over-after");
+  });
+  v.addEventListener("drop", async e=>{
+    const row = e.target.closest(".rowline[data-tid]");
+    clearDragIndicators();
+    if(!dragTypeId || !row) { dragTypeId = null; return; }
+    e.preventDefault();
+    const r = row.getBoundingClientRect();
+    const before = (e.clientY - r.top) < r.height/2;
+    const targetId = row.dataset.tid;
+    const srcId = dragTypeId; dragTypeId = null;
+    if(targetId && targetId !== srcId){
+      const list = typesSorted();
+      const pos = dropPos(list, srcId, targetId, before);
+      if(pos!=null) await reorderTo("pamphletTypes", list, srcId, pos);
+      renderAll();
+    }
+  });
+  v.addEventListener("dragend", ()=>{ dragTypeId = null; clearDragIndicators(); });
+
   $("#banner").addEventListener("click", e=>{ if(e.target.closest(".banner-x")) hideBanner(); });
   $("#modal").addEventListener("click", onModalClick);
   $("#tour").addEventListener("click", onTourClick);
@@ -1130,7 +1187,7 @@ async function runSubReady(id){
 async function runSubReadyAll(){
   const targets = activeStores().filter(s=>{
     const sh = DB.orderSheets[sheetId(UI.subMonth, s.id)];
-    return isSubmitted(sh) && !sh.readyAt;
+    return isSubmitted(sh) && !sh.readyAt && sh.status!=="発注なし";
   });
   if(!targets.length){ showBanner("対象の店舗がありません（提出済みで未準備の店舗がありません）。","info"); return; }
   if(!confirm(UI.subMonth+" 分：提出済みの "+targets.length+" 店舗をまとめて「準備済」にします。各店舗へ通知メールも送信されます。よろしいですか？")) return;
@@ -1332,6 +1389,7 @@ function viewSubmitted(){
     const copies = items.reduce((a,[tid,v])=> a + toCopies(DB.pamphletTypes[tid], v), 0);
     const unconf = !sh.confirmedAt || String(sh.confirmedAt) < String(sh.updatedAt||"");
     const ready = !!sh.readyAt;
+    const noOrder = sh.status==="発注なし";
     const open = UI.subOpen.has(s.id);
     let detail = "";
     if(open){
@@ -1354,10 +1412,12 @@ function viewSubmitted(){
       '<span class="muted">'+esc(fmtDT(sh.updatedAt))+'</span>'+
       '<span style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">'+
         (unconf ? '<button class="btn sm" data-act="sub-confirm" data-id="'+s.id+'">確認</button>' : '<button class="btn sm" data-act="sub-unconfirm" data-id="'+s.id+'">確認取消</button>')+
-        (ready ? '<button class="btn sm" data-act="sub-unready" data-id="'+s.id+'">準備済を取消</button>'
-               : '<button class="btn sm" data-act="sub-ready" data-id="'+s.id+'">準備済にする</button>')+
+        (noOrder ? '' :
+          (ready ? '<button class="btn sm" data-act="sub-unready" data-id="'+s.id+'">準備済を取消</button>'
+                 : '<button class="btn sm" data-act="sub-ready" data-id="'+s.id+'">準備済にする</button>')
+        )+
         '<button class="btn sm" data-act="sub-unsubmit" data-id="'+s.id+'">提出取消</button>'+
-        '<button class="btn sm primary" data-act="sub-print" data-id="'+s.id+'">この店舗を印刷</button>'+
+        (noOrder ? '' : '<button class="btn sm primary" data-act="sub-print" data-id="'+s.id+'">この店舗を印刷</button>')+
       '</span>'+
       '</div>'+ detail;
   }).join("");
@@ -1391,7 +1451,7 @@ function viewSubmitted(){
     '</div>'+
     '<div class="row" style="margin-bottom:16px">'+
       '<div class="fld"><label>対象月</label><input type="month" data-act="sub-month" value="'+esc(m)+'"></div>'+
-      '<div class="fld" style="min-width:auto;align-self:center"><span class="badge">提出済 <b>'+done+'</b> / '+stores.length+' 店舗</span></div>'+
+      '<div class="fld" style="min-width:auto"><label>&nbsp;</label><div style="display:flex;align-items:center;min-height:36px"><span class="badge">提出済 <b>'+done+'</b> / '+stores.length+' 店舗</span></div></div>'+
       '<div class="fld" style="min-width:auto"><label>&nbsp;</label><button class="btn" data-act="sub-readyall">一括で準備済にする</button></div>'+
       '<div class="fld" style="min-width:auto"><label>&nbsp;</label><button class="btn" data-act="sub-printall">提出分をまとめて印刷</button></div>'+
     '</div>'+
@@ -1425,7 +1485,10 @@ function buildPrintSheets(storeIds, month){
   }).join("");
 }
 function doPrint(storeIds, month){
-  const ids = storeIds.filter(id=> isSubmitted(DB.orderSheets[sheetId(month, id)]));
+  const ids = storeIds.filter(id=>{
+    const sh = DB.orderSheets[sheetId(month, id)];
+    return isSubmitted(sh) && sh.status!=="発注なし";
+  });
   if(!ids.length){ showBanner("印刷できる提出データがありません。","err"); return; }
   const pa = document.getElementById("printArea");
   pa.innerHTML = buildPrintSheets(ids, month);
@@ -1767,7 +1830,9 @@ function viewSettings(){
   const catOpts = t => CATS.map(cc=> '<option value="'+cc.key+'" '+(cc.key===t.category?"selected":"")+'>'+esc(cc.label)+'</option>').join("");
   const typeRows = typesSorted().map((t,i,arr)=>{
     const isB = unitOf(t)==="束";
-    return '<div class="rowline">'+
+    return '<div class="rowline nowrap" data-tid="'+t.id+'">'+
+      '<span class="drag-handle" draggable="true" data-id="'+t.id+'" title="ドラッグして並べ替え">⠿</span>'+
+      '<span class="muted" style="min-width:24px;text-align:right;font-weight:700;flex:none">'+(i+1)+'.</span>'+
       (t.coverImage? '<img class="mini" src="'+t.coverImage+'" alt="">' : '<span class="mini"></span>')+
       '<input class="grow" type="text" data-act="t-name" data-id="'+t.id+'" data-fk="tn-'+t.id+'" value="'+esc(t.name)+'">'+
       '<input class="grow" type="text" data-act="t-alias" data-id="'+t.id+'" data-fk="ta-'+t.id+'" value="'+esc(t.searchAliases||"")+'" placeholder="検索チャット用の別名（例：ブランドガイド）カンマ区切りで複数可" title="検索チャットで、正式名でなくてもこの別名で見つけられるようにします">'+
@@ -1781,8 +1846,6 @@ function viewSettings(){
       (t.coverImage? '<button class="btn sm" data-act="t-img-clr" data-id="'+t.id+'">画像削除</button>':'')+
       '<label class="muted" style="display:flex;gap:5px;align-items:center"><input type="checkbox" data-act="t-new" data-id="'+t.id+'" '+(t.isNew?"checked":"")+'>NEW表示</label>'+
       '<label class="muted" style="display:flex;gap:5px;align-items:center"><input type="checkbox" data-act="t-active" data-id="'+t.id+'" '+(t.active!==false?"checked":"")+'>有効</label>'+
-      '<button class="btn sm" data-act="t-up" data-id="'+t.id+'" '+(i===0?"disabled":"")+'>↑</button>'+
-      '<button class="btn sm" data-act="t-down" data-id="'+t.id+'" '+(i===arr.length-1?"disabled":"")+'>↓</button>'+
       '<button class="btn sm danger" data-act="t-del" data-id="'+t.id+'">削除</button>'+
     '</div>';
   }).join("");
@@ -1850,8 +1913,8 @@ function viewSettings(){
     '<section class="panel"><h2>店舗</h2><div class="sub">発注を行う店舗の一覧。「担当者メール」は、提出済みタブで「準備済」を押したときにその店舗へ通知メールを送る宛先です（メール通知を有効にしている場合）。</div>'+storeRows+
     '<div style="margin-top:10px"><button class="btn" data-act="s-add">＋ 店舗を追加</button></div></section>'+
 
-    '<section class="panel"><h2>パンフレット種類</h2><div class="sub">表紙画像は選択すると自動縮小して保存。単位を「束」にすると発注は束数入力になり、目安部数で部数換算します（ネット印刷の1束30〜50部に対応）。英語表記の種類には、検索チャット用のカタカナ別名を自動で登録済みです（変更・追加は「検索チャット用の別名」欄から）。</div>'+
-    typeRows+
+    '<section class="panel"><h2>パンフレット種類</h2><div class="sub">表紙画像は選択すると自動縮小して保存。単位を「束」にすると発注は束数入力になり、目安部数で部数換算します（ネット印刷の1束30〜50部に対応）。英語表記の種類には、検索チャット用のカタカナ別名を自動で登録済みです（変更・追加は「検索チャット用の別名」欄から）。先頭の「⠿」をドラッグ&ドロップすると並び替えられます（番号欄に数字を入力して移動することもできます）。</div>'+
+    '<div class="type-rows-wrap">'+typeRows+'</div>'+
     '<div style="margin-top:10px"><button class="btn" data-act="t-add">＋ 種類を追加</button></div></section>'+
 
     '<section class="panel"><h2>発注数の選択肢</h2><div class="sub">「部」用と「束」用のプルダウン候補（カンマ区切り）。</div>'+
@@ -2176,7 +2239,6 @@ async function onClick(e){
   }
   if(a==="t-del"){ if(confirm("この種類を削除しますか？（過去の発注記録は残ります）")){ await store.remove("pamphletTypes", id); renderAll(); } return; }
   if(a==="t-img-clr"){ await store.merge("pamphletTypes", id, {coverImage:"", updatedAt:now()}); renderAll(); return; }
-  if(a==="t-up"||a==="t-down"){ await reorder("pamphletTypes", typesSorted(), id, a==="t-up"?-1:1); renderAll(); return; }
 
   /* 設定：ステータス／選択肢／バックアップ */
   if(a==="st-add"){ const list=cfg().statuses.concat({name:"新規",color:"#6b7280"}); await store.merge("config","app",{statuses:list, updatedAt:now()}); renderAll(); return; }
@@ -2210,6 +2272,19 @@ async function reorder(coll, list, id, dir){
   if(i<0 || j<0 || j>=arr.length) return;
   arr.splice(j, 0, arr.splice(i, 1)[0]);        // move the item one step
   for(let k=0; k<arr.length; k++){               // renumber sequentially (fixes gaps/duplicates)
+    const want = (k+1)*10;
+    if((arr[k].sortOrder||0) !== want) await store.merge(coll, arr[k].id, {sortOrder:want});
+  }
+}
+async function reorderTo(coll, list, id, pos){
+  const arr = list.slice();
+  const i = arr.findIndex(x=>x.id===id);
+  if(i<0) return;
+  let j = pos - 1;                               // 1始まりの入力を0始まりの添字に
+  if(j<0) j = 0; if(j>arr.length-1) j = arr.length-1;
+  if(j===i) return;
+  arr.splice(j, 0, arr.splice(i, 1)[0]);         // 指定位置まで移動
+  for(let k=0; k<arr.length; k++){               // 全体を振り直し
     const want = (k+1)*10;
     if((arr[k].sortOrder||0) !== want) await store.merge(coll, arr[k].id, {sortOrder:want});
   }
