@@ -977,7 +977,7 @@ function renderAll(){
   if(UI.tab==="order")        v.innerHTML = viewOrder();
   else if(UI.tab==="submitted")v.innerHTML = viewSubmitted();
   else if(UI.tab==="history") v.innerHTML = viewHistory();
-  else if(UI.tab==="summary") v.innerHTML = viewSummary();
+  else if(UI.tab==="summary") v.innerHTML = settingsUnlocked() ? viewSummary() : viewSettingsLock("集計タブ");
   else if(UI.tab==="print")   v.innerHTML = settingsUnlocked() ? viewPrint() : viewSettingsLock("印刷発注タブ");
   else if(UI.tab==="catalog") v.innerHTML = viewCatalog();
   else if(UI.tab==="settings")v.innerHTML = settingsUnlocked() ? viewSettings() : viewSettingsLock("設定タブ");
@@ -1532,8 +1532,8 @@ function viewSettings(){
       '<span class="muted">「提出の通知先」宛にテストメールを送ります。</span></div></section>';
 
   const hasPw = !!settingsPassHash();
-  const pwSection = '<section class="panel"><h2>設定タブ・印刷発注タブのパスワード</h2>'+
-    '<div class="sub">設定すると、<b>「設定」タブと「印刷発注」タブ</b>を開くとき、また<b>「提出済み」タブの「確認」「準備済にする」</b>を押すときに、このパスワードを求めます（共通の1つのパスワードです。同じブラウザでは一度入力すれば、閉じるまで再入力不要）。'+
+  const pwSection = '<section class="panel"><h2>設定・印刷発注・集計タブのパスワード</h2>'+
+    '<div class="sub">設定すると、<b>「設定」「印刷発注」「集計」タブ</b>を開くとき、また<b>「提出済み」タブの「確認」「準備済にする」</b>を押すときに、このパスワードを求めます（共通の1つのパスワードです。同じブラウザでは一度入力すれば、閉じるまで再入力不要）。'+
     'データそのものの保護ではなく、店舗の人などの誤操作を防ぐためのものです。</div>'+
     '<div class="row">'+
       '<div class="fld"><label>新しいパスワード（3文字以上）</label><input type="password" id="set-newpw" data-fk="set-newpw"></div>'+
