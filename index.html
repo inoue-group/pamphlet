@@ -212,6 +212,7 @@ window.PAMPH_FIREBASE_CONFIG = {
   .modal-wrap{ position:fixed; inset:0; background:rgba(15,20,30,.5); z-index:60; display:flex; align-items:center; justify-content:center; padding:16px }
   .modal-wrap.hide{ display:none }
   .modal-card{ background:var(--panel); border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); width:100%; max-width:620px; max-height:88vh; display:flex; flex-direction:column }
+  .modal-card.wide{ max-width:900px }
   .modal-head{ padding:14px 18px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; gap:10px }
   .modal-head b{ font-size:15px }
   .modal-x{ background:transparent; border:0; color:var(--ink-soft); font-size:20px; line-height:1; cursor:pointer; padding:0 4px }
@@ -670,10 +671,11 @@ function showBanner(msg,type){
 function hideBanner(){ if(bannerTimer){ clearTimeout(bannerTimer); bannerTimer = null; } const b=$("#banner"); if(b) b.className = "banner hide"; }
 
 /* ---------- モーダル / チュートリアル / 使い方ガイド ---------- */
-function openModal(title, bodyHtml, footHtml){
+function openModal(title, bodyHtml, footHtml, opts){
   const m = $("#modal");
+  const wide = opts && opts.wide;
   m.innerHTML =
-    '<div class="modal-card" role="dialog" aria-modal="true">'+
+    '<div class="modal-card'+(wide?" wide":"")+'" role="dialog" aria-modal="true">'+
       '<div class="modal-head"><b>'+esc(title)+'</b><button type="button" class="modal-x" data-act="modal-close" aria-label="閉じる">×</button></div>'+
       '<div class="modal-body">'+bodyHtml+'</div>'+
       '<div class="modal-foot">'+(footHtml||'<button class="btn primary sp" data-act="modal-close">閉じる</button>')+'</div>'+
@@ -723,7 +725,7 @@ const TOURS = {
     { sel:null, title:"「在庫管理」タブ", html:'<div class="big">パンフレットの<b>現在の在庫部数</b>を管理する画面です（パンフレット管理担当者用・パスワード保護あり）。</div>' },
     { sel:'.grid .card', html:'<b>① 一覧</b><br>「発注」タブと同じように、パンフレットの表紙が並びます。表紙の下に<b>現在の在庫部数</b>が表示されます。' },
     { sel:'.stock-row input', html:'<b>② 手入力で修正</b><br>数量欄に直接入力すると、その場で在庫数を更新できます（棚卸しなどで実数に合わせたいときに）。' },
-    { sel:'.thumb-btn', html:'<b>③ 増減履歴を見る</b><br>表紙（または「履歴」ボタン）を押すと、その種類の<b>いつ・何が理由で・何部増減したか</b>の記録を確認できます。' },
+    { sel:'.thumb-btn', html:'<b>③ 増減履歴を見る</b><br>表紙をクリックすると、その種類の<b>いつ・何が理由で・何部増減したか</b>の記録を確認できます。' },
     { sel:null, title:"自動で増減します", html:'<div class="big">「提出済み」タブで店舗を<b>「準備済にする」</b>と、提出された部数ぶん<b>自動的に在庫が減ります</b>。<br>「印刷発注」タブで<b>「納品済」</b>にすると、依頼部数ぶん<b>自動的に在庫が増えます</b>。<br>もちろん、必要なときはいつでも手入力で調整できます。</div>' },
     { sel:'[data-act="open-guide"]', html:'<b>使い方ガイド</b><br>いつでもここから説明とこのツアーを見られます。', optional:true },
     { sel:null, title:"OK！", html:'<div class="big">これで在庫管理タブの説明は以上です。</div>', last:true }
@@ -768,7 +770,7 @@ const GUIDES = {
     '<h4>見かた・使い方</h4>'+
     '<ul><li>「発注」タブと同じ表紙一覧に、<b>現在の在庫部数</b>が表示されます</li>'+
     '<li>数量欄に直接入力すると、その場で在庫数を手動で更新できます（棚卸しなど）</li>'+
-    '<li>表紙（または「履歴」ボタン）を押すと、その種類の<b>増減履歴</b>（日時・理由・増減数・残数）を確認できます</li></ul>'+
+    '<li>表紙をクリックすると、その種類の<b>増減履歴</b>（日時・理由・増減数・残数）を確認できます</li></ul>'+
     '<h4>自動で増減するタイミング</h4>'+
     '<ul><li>「提出済み」タブで店舗を<b>「準備済にする」</b>→ 提出された部数ぶん自動的に<b>減ります</b></li>'+
     '<li>「印刷発注」タブで<b>「納品済」</b>にする → 依頼部数ぶん自動的に<b>増えます</b>（同じ発注を2回「納品済」にしても二重には加算されません）</li></ul>'+
@@ -904,7 +906,6 @@ async function onModalClick(e){
   else if(a==="pw-confirm-run"){
     const v = (document.getElementById("pw-confirm-input")||{}).value||"";
     if(hashStr(v) !== settingsPassHash()){ showBanner("パスワードが違います。","err"); return; }
-    try{ sessionStorage.setItem("pamph_set_ok", settingsPassHash()); }catch(e2){}
     const pending = UI.pendingConfirm; UI.pendingConfirm = null;
     closeModal();
     if(pending){
@@ -912,6 +913,12 @@ async function onModalClick(e){
       else if(pending.kind==="sub-ready") await runSubReady(pending.id);
       else if(pending.kind==="sub-readyall") await runSubReadyAll();
     }
+  }
+  else if(a==="stock-log-del"){
+    if(!confirm("この履歴項目を削除しますか？（在庫数そのものは変更されません）")) return;
+    const typeId = b.dataset.type;
+    await store.remove("stockLogs", b.dataset.id);
+    openStockHistory(typeId);
   }
 }
 
@@ -946,7 +953,7 @@ function viewSettingsLock(label){
   return '<section class="panel"><h2>'+esc(label||"このタブ")+'はパスワードで保護されています</h2>'+
     '<div class="sub">管理担当者にパスワードを確認してください。設定タブと共通のパスワードです。</div>'+
     '<div class="row">'+
-      '<div class="fld"><label>パスワード</label><input type="password" id="set-pw" data-fk="set-pw"></div>'+
+      '<div class="fld"><label>パスワード</label><input type="text" id="set-pw" data-fk="set-pw" name="pamph_pw_hist" autocomplete="on" autocapitalize="off" autocorrect="off" spellcheck="false"></div>'+
       '<div class="fld" style="min-width:auto"><label>&nbsp;</label><button class="btn primary" data-act="settings-unlock">解除</button></div>'+
     '</div></section>';
 }
@@ -989,7 +996,7 @@ function askPwThen(kind, id){
   UI.pendingConfirm = {kind, id};
   openModal("パスワード確認",
     '<div class="sub" style="margin-bottom:8px">誤操作防止のため、パスワードを入力してください。</div>'+
-    '<div class="fld"><label>パスワード</label><input type="password" id="pw-confirm-input" data-fk="pw-confirm-input"></div>',
+    '<div class="fld"><label>パスワード</label><input type="text" id="pw-confirm-input" data-fk="pw-confirm-input" name="pamph_pw_hist" autocomplete="on" autocapitalize="off" autocorrect="off" spellcheck="false"></div>',
     '<button class="btn" data-act="modal-close">キャンセル</button>'+
     '<button class="btn primary sp" data-act="pw-confirm-run">確認して実行</button>');
 }
@@ -1461,18 +1468,20 @@ function openStockHistory(typeId){
   const rows = logs.map(l=>{
     const d = num(l.delta), pos = d>0;
     return '<tr><td class="muted" style="white-space:nowrap">'+esc(fmtDT(l.createdAt))+'</td>'+
-      '<td>'+esc(stockReasonLabel(l.reason))+'</td>'+
+      '<td style="white-space:nowrap">'+esc(stockReasonLabel(l.reason))+'</td>'+
       '<td class="muted">'+esc(l.note||"")+'</td>'+
-      '<td class="num" style="color:'+(pos?"var(--ok)":d<0?"var(--danger)":"var(--ink-soft)")+';font-weight:700">'+(pos?"+":"")+d+'</td>'+
-      '<td class="num">'+num(l.after)+'</td>'+
+      '<td class="num" style="color:'+(pos?"var(--ok)":d<0?"var(--danger)":"var(--ink-soft)")+';font-weight:700;white-space:nowrap">'+(pos?"+":"")+d+'</td>'+
+      '<td class="num" style="white-space:nowrap">'+num(l.after)+'</td>'+
+      '<td style="white-space:nowrap"><button type="button" class="btn sm danger" data-act="stock-log-del" data-id="'+l.id+'" data-type="'+typeId+'">削除</button></td>'+
     '</tr>';
   }).join("");
   openModal("在庫増減履歴："+(t.name||""),
     '<div class="muted" style="margin-bottom:8px">現在の在庫：<b>'+num(t.stockQty)+' 部</b></div>'+
-    '<div class="tbl-wrap"><table><thead><tr><th>日時</th><th>区分</th><th>メモ</th><th class="num">増減</th><th class="num">残数</th></tr></thead><tbody>'+
-    (rows || '<tr><td colspan="5" class="muted">まだ履歴がありません</td></tr>')+
+    '<div class="tbl-wrap"><table><thead><tr><th>日時</th><th>区分</th><th>メモ</th><th class="num">増減</th><th class="num">残数</th><th></th></tr></thead><tbody>'+
+    (rows || '<tr><td colspan="6" class="muted">まだ履歴がありません</td></tr>')+
     '</tbody></table></div>',
-    '<button class="btn primary sp" data-act="modal-close">閉じる</button>');
+    '<button class="btn primary sp" data-act="modal-close">閉じる</button>',
+    {wide:true});
 }
 function viewStock(){
   const byCat = typesByCat();
@@ -1487,15 +1496,14 @@ function viewStock(){
         '<span class="bdot" style="background:'+bcol+'" title="ブランド"></span>'+
         '<button type="button" class="thumb-btn" data-act="stock-hist" data-id="'+t.id+'" title="増減履歴を見る">'+img+'</button>'+
         '<div class="nm">'+esc(t.name)+'</div>'+
-        '<div class="stock-row"><input type="number" min="0" class="short" data-act="stock-qty" data-id="'+t.id+'" data-fk="stk-'+t.id+'" value="'+qty+'"> 部'+
-          '<button type="button" class="btn sm" data-act="stock-hist" data-id="'+t.id+'">履歴</button></div>'+
+        '<div class="stock-row"><input type="number" min="0" class="short" data-act="stock-qty" data-id="'+t.id+'" data-fk="stk-'+t.id+'" value="'+qty+'"> 部</div>'+
       '</div>';
     }).join("") + '</div>';
   }).join("");
 
   return '<section class="panel">'+
     '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">'+
-      '<div style="flex:1;min-width:260px"><h2>在庫管理</h2><div class="sub">各パンフレットの現在の在庫部数を管理します。数量欄に直接入力すると手動で更新できます。「提出済み」タブで店舗を「準備済にする」と自動的に減り、「印刷発注」タブで「納品済」にすると自動的に増えます。表紙（または「履歴」）をクリックすると増減の記録を確認できます。</div></div>'+
+      '<div style="flex:1;min-width:260px"><h2>在庫管理</h2><div class="sub">各パンフレットの現在の在庫部数を管理します。数量欄に直接入力すると手動で更新できます。「提出済み」タブで店舗を「準備済にする」と自動的に減り、「印刷発注」タブで「納品済」にすると自動的に増えます。表紙をクリックすると増減の記録を確認できます。</div></div>'+
       '<button class="btn" data-act="open-guide" style="flex:none;margin-left:auto">📖 使い方ガイド</button>'+
     '</div>'+ (body || '<p class="muted">パンフレット種類が登録されていません。</p>') +
     '</section>';
@@ -1653,7 +1661,7 @@ function viewSettings(){
 
   const hasPw = !!settingsPassHash();
   const pwSection = '<section class="panel"><h2>設定・印刷発注・集計・在庫管理タブのパスワード</h2>'+
-    '<div class="sub">設定すると、<b>「設定」「印刷発注」「集計」「在庫管理」タブ</b>を開くとき、また<b>「提出済み」タブの「確認」「準備済にする」</b>を押すときに、このパスワードを求めます（共通の1つのパスワードです。同じブラウザでは一度入力すれば、閉じるまで再入力不要）。'+
+    '<div class="sub">設定すると、<b>「設定」「印刷発注」「集計」「在庫管理」タブ</b>を開くとき、また<b>「提出済み」タブの「確認」「準備済にする」「一括で準備済にする」</b>を押すときに、このパスワードを求めます（共通の1つのパスワードです）。タブを開くときは同じブラウザで一度入力すれば閉じるまで再入力不要ですが、「確認」「準備済にする」「一括で準備済にする」は<b>毎回</b>パスワード入力が必要です（入力欄には過去に入力した候補がブラウザの入力履歴として表示されるので、選んでEnterキーで素早く解除できます）。'+
     'データそのものの保護ではなく、店舗の人などの誤操作を防ぐためのものです。</div>'+
     '<div class="row">'+
       '<div class="fld"><label>新しいパスワード（3文字以上）</label><input type="password" id="set-newpw" data-fk="set-newpw"></div>'+
@@ -1865,16 +1873,16 @@ async function onClick(e){
   if(a==="sub-print"){ doPrint([id], UI.subMonth); return; }
   if(a==="sub-printall"){ doPrint(activeStores().map(s=>s.id), UI.subMonth); return; }
   if(a==="sub-confirm"){
-    if(!settingsUnlocked()){ askPwThen("sub-confirm", id); return; }
+    if(settingsPassHash()){ askPwThen("sub-confirm", id); return; }
     await runSubConfirm(id); return;
   }
   if(a==="sub-unconfirm"){ await store.merge("orderSheets", sheetId(UI.subMonth, id), {confirmedAt: ""}); renderAll(); return; }
   if(a==="sub-ready"){
-    if(!settingsUnlocked()){ askPwThen("sub-ready", id); return; }
+    if(settingsPassHash()){ askPwThen("sub-ready", id); return; }
     await runSubReady(id); return;
   }
   if(a==="sub-readyall"){
-    if(!settingsUnlocked()){ askPwThen("sub-readyall", ""); return; }
+    if(settingsPassHash()){ askPwThen("sub-readyall", ""); return; }
     await runSubReadyAll(); return;
   }
   if(a==="sub-unready"){ await store.merge("orderSheets", sheetId(UI.subMonth, id), {readyAt: ""}); renderAll(); return; }
