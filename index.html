@@ -231,7 +231,7 @@ window.PAMPH_FIREBASE_CONFIG = {
   }
 
   /* 起動アニメーション */
-  .boot-splash{ position:fixed; inset:0; z-index:200; background:rgba(18,13,10,.86); display:flex; align-items:center; justify-content:center; opacity:1; visibility:visible; transition:opacity .6s ease, visibility .6s ease }
+  .boot-splash{ position:fixed; inset:0; z-index:200; background:rgba(8,6,5,.90); display:flex; align-items:center; justify-content:center; opacity:1; visibility:visible; transition:opacity .6s ease, visibility .6s ease }
   .boot-splash.hide{ opacity:0; visibility:hidden; pointer-events:none }
   .boot-stack{ display:flex; flex-direction:column; align-items:center; gap:8px }
   .boot-sub{ color:rgba(255,255,255,.5); font-size:clamp(10px,1.7vw,13px); font-weight:600; letter-spacing:.2em; text-transform:uppercase; font-family:"Bahnschrift SemiBold","Bahnschrift","Segoe UI","Helvetica Neue",Arial,sans-serif; white-space:nowrap }
@@ -2545,16 +2545,15 @@ function playBootSplash(){
 function initBootSplash(){
   const el = $("#bootSplash");
   if(!el) return;
+  // sessionStorage方式：このタブで初めて開いたときだけ表示（F5等のリロードでは非表示）。
+  // Navigation Timing APIはスマホのブラウザ・アプリ内ブラウザで挙動が不安定なため使わない。
   let fresh = true;
   try{
     if(location.search.indexOf("shot")>=0) fresh = false;
-    else{
-      const nav = performance && performance.getEntriesByType ? performance.getEntriesByType("navigation")[0] : null;
-      if(nav) fresh = nav.type !== "reload";
-      else if(performance && performance.navigation) fresh = performance.navigation.type !== 1;
-    }
+    else if(sessionStorage.getItem("pamph_boot_shown")) fresh = false;
   }catch(e){}
   if(!fresh){ el.classList.add("hide"); return; }
+  try{ sessionStorage.setItem("pamph_boot_shown","1"); }catch(e){}
   scheduleBootSplashHide();
 }
 function start(){
