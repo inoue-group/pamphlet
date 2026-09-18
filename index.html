@@ -93,7 +93,7 @@ window.PAMPH_FIREBASE_CONFIG = {
   .panel h2{font-size:15px; margin-bottom:4px}
   .panel .sub{color:var(--ink-soft); font-size:12px; margin-bottom:12px}
 
-  .row{display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end}
+  .row{display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; margin-bottom:16px}
   .fld{display:flex; flex-direction:column; gap:4px; min-width:150px}
   .fld label{font-size:11px; font-weight:700; color:var(--ink-soft)}
   input,select,textarea{font-family:inherit; font-size:14px; color:var(--ink); background:var(--panel-2); border:1px solid var(--line-strong); border-radius:10px; padding:8px 10px}
@@ -152,6 +152,8 @@ window.PAMPH_FIREBASE_CONFIG = {
   tr:last-child td{border-bottom:0}
   tfoot td{border-top:2px solid var(--line-strong); font-weight:700}
   .mini{width:34px; aspect-ratio:3/4; border-radius:4px; object-fit:contain; background:var(--chip); display:inline-block; vertical-align:middle; margin-right:8px}
+  .mini-btn{display:inline-flex; border:0; padding:0; margin:0; background:none; cursor:pointer; flex:none}
+  .mini-btn:hover .mini{outline:2px solid var(--accent); outline-offset:1px}
   .name-cell{display:flex; align-items:center; gap:2px; min-width:190px}
 
   .pill{display:inline-block; font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px; color:#fff}
@@ -161,7 +163,9 @@ window.PAMPH_FIREBASE_CONFIG = {
   .rowline{display:flex; gap:8px; align-items:center; padding:8px 0; border-bottom:1px dashed var(--line); flex-wrap:wrap}
   .type-rows-wrap{overflow-x:auto; padding-bottom:4px}
   .rowline.nowrap{flex-wrap:nowrap; min-width:max-content}
-  .rowline.nowrap input.grow{flex:none; width:170px}
+  .rowline.nowrap input.grow{flex:2 1 170px; width:auto; min-width:170px; max-width:420px}
+  .rowline.nowrap input.grow.alias{flex:1 1 110px; width:auto; min-width:110px; max-width:220px}
+  .rowline.nowrap select.cat-sel{flex:none; width:118px}
   .drag-handle{flex:none; cursor:grab; font-size:18px; color:var(--ink-soft); padding:0 4px; user-select:none}
   .drag-handle:active{cursor:grabbing}
   .rowline.nowrap{position:relative}
@@ -182,6 +186,17 @@ window.PAMPH_FIREBASE_CONFIG = {
   .ccard .ctitle{font-size:13px; font-weight:700; line-height:1.35}
   .ccard .cact{display:flex; gap:8px; margin-top:auto}
   .swatch{width:30px; height:30px; border-radius:8px; border:2px solid var(--line-strong); cursor:pointer; padding:0}
+  .ios-switch{position:relative; display:inline-block; width:40px; height:24px; flex:none; vertical-align:middle}
+  .ios-switch input{position:absolute; opacity:0; width:100%; height:100%; margin:0; cursor:pointer; z-index:1}
+  .ios-switch-track{position:absolute; inset:0; background:#dcdce1; border-radius:999px; transition:background .18s ease}
+  .ios-switch-track::before{content:""; position:absolute; left:2px; top:2px; width:20px; height:20px; background:#fff; border-radius:50%; box-shadow:0 1px 3px rgba(0,0,0,.35); transition:transform .18s ease}
+  .ios-switch input:checked + .ios-switch-track{background:#34c759}
+  .ios-switch input:checked + .ios-switch-track::before{transform:translateX(16px)}
+  .brand-picker{position:relative; display:inline-flex; flex:none}
+  .brand-sel{flex:none; width:30px; height:30px; border-radius:50%; border:2px solid var(--line-strong); padding:0; cursor:pointer}
+  .brand-picker-pop{position:absolute; top:36px; left:0; z-index:30; display:flex; gap:6px; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:6px; box-shadow:var(--shadow)}
+  .brand-pick-dot{width:26px; height:26px; border-radius:50%; border:2px solid var(--line-strong); padding:0; cursor:pointer}
+  .brand-pick-dot.on{box-shadow:0 0 0 2px var(--accent)}
   .swatch.on{outline:3px solid color-mix(in srgb,var(--accent) 55%,transparent); outline-offset:1px; border-color:var(--ink)}
   .dotbtn{width:30px;height:30px;border-radius:999px;border:2px solid var(--line-strong);cursor:pointer;padding:0}
   .dotbtn.on{outline:3px solid color-mix(in srgb,var(--accent) 55%,transparent); outline-offset:1px}
@@ -557,6 +572,7 @@ const UI = {
   catBrand:"",
   tourPreview:false,
   pendingConfirm:null,
+  brandPickerOpenId:null,
   hist:{ from: monthsAgo(5), to: todayMonth(), storeId:"", typeId:"", hideZero:true, sheetMonth: todayMonth(), sheetStore:"" }
 };
 try{ const p=JSON.parse(localStorage.getItem("pamph_prefs")||"{}"); if(p.storeId)UI.storeId=p.storeId; if(p.orderer)UI.orderer=p.orderer; }catch(e){}
@@ -825,6 +841,9 @@ function boot(){
   if(chatClose && chatPanel) chatClose.addEventListener("click", ()=> chatPanel.classList.add("hide"));
   if(chatSend) chatSend.addEventListener("click", sendChat);
   if(chatInput) chatInput.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); sendChat(); } });
+  document.addEventListener("click", e=>{
+    if(UI.brandPickerOpenId!==null && !e.target.closest(".brand-picker")){ UI.brandPickerOpenId = null; renderAll(); }
+  });
   document.addEventListener("keydown", e=>{
     const tourOpen = !$("#tour").classList.contains("hide");
     if(e.key==="Escape"){
@@ -1292,7 +1311,10 @@ function viewOrder(){
           const lbl = isB ? (o+'束（約'+(o*perBundleOf(t))+'部）') : (o+'部');
           return '<option value="'+o+'" '+(o===q?"selected":"")+'>'+lbl+'</option>';
         }).join("");
-        const img = t.coverImage ? '<img class="thumb" loading="lazy" src="'+t.coverImage+'" alt="">' : '<div class="thumb ph">表紙未登録</div>';
+        const imgInner = t.coverImage ? '<img class="thumb" loading="lazy" src="'+t.coverImage+'" alt="">' : '<div class="thumb ph">表紙未登録</div>';
+        const img = t.coverImage
+          ? '<button type="button" class="thumb-btn" data-act="t-img-zoom" data-id="'+t.id+'" title="表紙を拡大表示">'+imgInner+'</button>'
+          : imgInner;
         const conv = isB ? '<div class="conv">1束 ≒ 約'+perBundleOf(t)+'部</div>' : '';
         const bcol = brandColor(t.brand);
         return '<div class="card '+(q>0?"has-qty":"")+'">'+
@@ -1449,7 +1471,7 @@ function viewSubmitted(){
       '<div class="sub">提出された発注データを店舗ごとに確認し、印刷して振り分けに使います。印刷は添付フォーマット（表紙＋発注数）で出力されます。</div></div>'+
       '<button class="btn" data-act="open-guide">📖 使い方ガイド</button>'+
     '</div>'+
-    '<div class="row" style="margin-bottom:16px">'+
+    '<div class="row">'+
       '<div class="fld"><label>対象月</label><input type="month" data-act="sub-month" value="'+esc(m)+'"></div>'+
       '<div class="fld" style="min-width:auto"><label>&nbsp;</label><div style="display:flex;align-items:center;min-height:36px"><span class="badge">提出済 <b>'+done+'</b> / '+stores.length+' 店舗</span></div></div>'+
       '<div class="fld" style="min-width:auto"><label>&nbsp;</label><button class="btn" data-act="sub-readyall">一括で準備済にする</button></div>'+
@@ -1672,6 +1694,13 @@ async function adjustStock(typeId, delta, reason, note, refKind, refId){
 function stockReasonLabel(r){
   return r==="ready" ? "発送準備完了（自動）" : r==="delivered" ? "印刷発注 納品（自動）" : "手入力";
 }
+function openImageZoom(typeId){
+  const t = DB.pamphletTypes[typeId] || {};
+  if(!t.coverImage) return;
+  openModal(t.name||"表紙画像",
+    '<div style="text-align:center"><img src="'+t.coverImage+'" alt="" style="max-width:100%;max-height:70vh;border-radius:10px;box-shadow:var(--shadow)"></div>',
+    '<button class="btn primary sp" data-act="modal-close">閉じる</button>');
+}
 function openStockHistory(typeId){
   const t = DB.pamphletTypes[typeId] || {};
   const logs = Object.values(DB.stockLogs).filter(l=> l.typeId===typeId)
@@ -1834,19 +1863,26 @@ function viewSettings(){
     return '<div class="rowline nowrap" data-tid="'+t.id+'">'+
       '<span class="drag-handle" draggable="true" data-id="'+t.id+'" title="ドラッグして並べ替え">⠿</span>'+
       '<span class="muted" style="min-width:24px;text-align:right;font-weight:700;flex:none">'+(i+1)+'.</span>'+
-      (t.coverImage? '<img class="mini" src="'+t.coverImage+'" alt="">' : '<span class="mini"></span>')+
+      (t.coverImage? '<button type="button" class="mini-btn" data-act="t-img-zoom" data-id="'+t.id+'" title="表紙を拡大表示"><img class="mini" src="'+t.coverImage+'" alt=""></button>' : '<span class="mini"></span>')+
       '<input class="grow" type="text" data-act="t-name" data-id="'+t.id+'" data-fk="tn-'+t.id+'" value="'+esc(t.name)+'">'+
-      '<input class="grow" type="text" data-act="t-alias" data-id="'+t.id+'" data-fk="ta-'+t.id+'" value="'+esc(t.searchAliases||"")+'" placeholder="検索チャット用の別名（例：ブランドガイド）カンマ区切りで複数可" title="検索チャットで、正式名でなくてもこの別名で見つけられるようにします">'+
-      '<select data-act="t-cat" data-id="'+t.id+'">'+catOpts(t)+'</select>'+
-      '<button class="swatch '+((t.brand||"sai")==="sai"?"on":"")+'" data-act="t-brand" data-id="'+t.id+'" data-brand="sai" style="background:'+BRANDS.sai.color+'" title="ブランドA"></button>'+
-      '<button class="swatch '+((t.brand||"sai")==="fp"?"on":"")+'" data-act="t-brand" data-id="'+t.id+'" data-brand="fp" style="background:'+BRANDS.fp.color+'" title="ブランドB"></button>'+
-      '<button class="swatch '+((t.brand||"sai")==="none"?"on":"")+'" data-act="t-brand" data-id="'+t.id+'" data-brand="none" style="background:#fff" title="無印"></button>'+
+      '<input class="grow alias" type="text" data-act="t-alias" data-id="'+t.id+'" data-fk="ta-'+t.id+'" value="'+esc(t.searchAliases||"")+'" placeholder="検索用の別名（例：ブランドガイド）" title="検索チャットで、正式名でなくてもこの別名で見つけられるようにします">'+
+      '<select class="cat-sel" data-act="t-cat" data-id="'+t.id+'">'+catOpts(t)+'</select>'+
+      '<span class="brand-picker">'+
+        '<button type="button" class="brand-sel" data-act="t-brand-open" data-id="'+t.id+'" title="ブランドを選択" style="background:'+BRANDS[t.brand||"sai"].color+'"></button>'+
+        (UI.brandPickerOpenId===t.id ?
+          '<span class="brand-picker-pop">'+
+            '<button type="button" class="brand-pick-dot '+((t.brand||"sai")==="sai"?"on":"")+'" data-act="t-brand-pick" data-id="'+t.id+'" data-brand="sai" style="background:'+BRANDS.sai.color+'" title="彩ハウス"></button>'+
+            '<button type="button" class="brand-pick-dot '+((t.brand||"sai")==="fp"?"on":"")+'" data-act="t-brand-pick" data-id="'+t.id+'" data-brand="fp" style="background:'+BRANDS.fp.color+'" title="F.PRODUCTS"></button>'+
+            '<button type="button" class="brand-pick-dot '+((t.brand||"sai")==="none"?"on":"")+'" data-act="t-brand-pick" data-id="'+t.id+'" data-brand="none" style="background:#fff" title="共通"></button>'+
+          '</span>' : '')+
+      '</span>'+
       '<select data-act="t-unit" data-id="'+t.id+'"><option value="部" '+(!isB?"selected":"")+'>部</option><option value="束" '+(isB?"selected":"")+'>束</option></select>'+
       (isB? '<input class="short" type="number" min="1" data-act="t-perbundle" data-id="'+t.id+'" data-fk="tp-'+t.id+'" value="'+perBundleOf(t)+'" title="1束の目安部数（30〜50）">':'')+
       '<label class="btn sm" style="cursor:pointer">画像<input type="file" accept="image/*" data-act="t-img" data-id="'+t.id+'" style="display:none"></label>'+
-      (t.coverImage? '<button class="btn sm" data-act="t-img-clr" data-id="'+t.id+'">画像削除</button>':'')+
-      '<label class="muted" style="display:flex;gap:5px;align-items:center"><input type="checkbox" data-act="t-new" data-id="'+t.id+'" '+(t.isNew?"checked":"")+'>NEW表示</label>'+
-      '<label class="muted" style="display:flex;gap:5px;align-items:center"><input type="checkbox" data-act="t-active" data-id="'+t.id+'" '+(t.active!==false?"checked":"")+'>有効</label>'+
+      '<label class="muted" style="display:flex;gap:5px;align-items:center;flex:none">NEW<input type="checkbox" data-act="t-new" data-id="'+t.id+'" '+(t.isNew?"checked":"")+'></label>'+
+      '<label class="muted" style="display:flex;gap:6px;align-items:center;flex:none">表示'+
+        '<span class="ios-switch"><input type="checkbox" data-act="t-active" data-id="'+t.id+'" '+(t.active!==false?"checked":"")+'><span class="ios-switch-track"></span></span>'+
+      '</label>'+
       '<button class="btn sm danger" data-act="t-del" data-id="'+t.id+'">削除</button>'+
     '</div>';
   }).join("");
@@ -2138,6 +2174,7 @@ async function onClick(e){
 
   /* 在庫管理 */
   if(a==="stock-hist"){ openStockHistory(id); return; }
+  if(a==="t-img-zoom"){ openImageZoom(id); return; }
 
   /* 集計 → 印刷発注へ登録（部数） */
   if(a==="po-add"){
@@ -2174,7 +2211,6 @@ async function onClick(e){
   if(a==="c-add"){ const n=catalogsSorted().length; await store.put("catalogs", uid(), {title:"新規カタログ", url:"", coverImage:"", brand:"sai", sortOrder:(n+1)*10, active:true, updatedAt:now()}); renderAll(); return; }
   if(a==="c-del"){ if(confirm("このカタログを削除しますか？")){ await store.remove("catalogs", id); renderAll(); } return; }
   if(a==="c-brand"){ await store.merge("catalogs", id, {brand:b.dataset.brand, updatedAt:now()}); renderAll(); return; }
-  if(a==="t-brand"){ await store.merge("pamphletTypes", id, {brand:b.dataset.brand, updatedAt:now()}); renderAll(); return; }
   if(a==="c-img-clr"){ await store.merge("catalogs", id, {coverImage:"", updatedAt:now()}); renderAll(); return; }
   if(a==="c-up"||a==="c-down"){ await reorder("catalogs", catalogsSorted(), id, a==="c-up"?-1:1); renderAll(); return; }
   if(a==="c-brandfilter"){ UI.catBrand = b.dataset.brand; renderAll(); return; }
@@ -2239,7 +2275,12 @@ async function onClick(e){
     renderAll(); return;
   }
   if(a==="t-del"){ if(confirm("この種類を削除しますか？（過去の発注記録は残ります）")){ await store.remove("pamphletTypes", id); renderAll(); } return; }
-  if(a==="t-img-clr"){ await store.merge("pamphletTypes", id, {coverImage:"", updatedAt:now()}); renderAll(); return; }
+  if(a==="t-brand-open"){ UI.brandPickerOpenId = (UI.brandPickerOpenId===id ? null : id); renderAll(); return; }
+  if(a==="t-brand-pick"){
+    UI.brandPickerOpenId = null;
+    await store.merge("pamphletTypes", id, {brand:b.dataset.brand, updatedAt:now()});
+    renderAll(); return;
+  }
 
   /* 設定：ステータス／選択肢／バックアップ */
   if(a==="st-add"){ const list=cfg().statuses.concat({name:"新規",color:"#6b7280"}); await store.merge("config","app",{statuses:list, updatedAt:now()}); renderAll(); return; }
