@@ -586,11 +586,24 @@ try{ const p=JSON.parse(localStorage.getItem("pamph_prefs")||"{}"); if(p.storeId
 function savePrefs(){ try{ localStorage.setItem("pamph_prefs", JSON.stringify({storeId:UI.storeId, orderer:UI.orderer})); }catch(e){} }
 
 /* ---------- 右上の利用者名バッジ（本人確認ではなく、自己申告の表示用） ---------- */
+const DEFAULT_DISPLAY_COLOR = "#F39800";
 function getDisplayName(){ try{ return localStorage.getItem("pamph_display_name")||""; }catch(e){ return ""; } }
-function setDisplayName(v){
+function getDisplayColor(){ try{ return localStorage.getItem("pamph_display_color")||DEFAULT_DISPLAY_COLOR; }catch(e){ return DEFAULT_DISPLAY_COLOR; } }
+function setDisplayName(v, color){
   try{ localStorage.setItem("pamph_display_name", (v||"").trim()); }catch(e){}
+  if(color){ try{ localStorage.setItem("pamph_display_color", color); }catch(e){} }
   renderUserBadge();
   if(getDisplayName()) startPresenceHeartbeat(); else stopPresenceHeartbeat();
+}
+function textForColor(hex){
+  const h = (hex||"").replace("#","");
+  if(h.length!==6) return "var(--ink-soft)";
+  const r=parseInt(h.slice(0,2),16), g=parseInt(h.slice(2,4),16), b=parseInt(h.slice(4,6),16);
+  // アイコンの塗りは30%の薄さなので、白背景と混ざった後の「実際に見える濃さ」で判定する
+  // （元の色だけで判定すると、薄めた結果はほぼ必ず明るくなるため、白文字が読めなくなる）
+  const mr = r*0.3 + 255*0.7, mg = g*0.3 + 255*0.7, mb = b*0.3 + 255*0.7;
+  const yiq = (mr*299+mg*587+mb*114)/1000; // 0(濃い)〜255(薄い)
+  return yiq<190 ? "#fff" : "var(--ink-soft)";
 }
 function renderUserBadge(){
   const el = $("#userBadge"); if(!el) return;
@@ -600,10 +613,17 @@ function renderUserBadge(){
   el.textContent = shown || "＋";
   el.title = surname ? surname+"さん（クリックで変更）" : "クリックして名前を設定";
   el.classList.toggle("set", !!surname);
+  if(surname){
+    const c = getDisplayColor();
+    el.style.background = "color-mix(in srgb, "+c+" 30%, transparent)"; el.style.borderColor = c; el.style.color = textForColor(c);
+  }else{
+    el.style.background = ""; el.style.borderColor = ""; el.style.color = "";
+  }
 }
 function promptDisplayName(){
   openModal("利用者名の設定",
     '<div class="fld"><label>お名前</label><input type="text" id="dispname-input" data-fk="dispname-input" value="'+esc(getDisplayName())+'" placeholder="例）鈴木"></div>'+
+    '<div class="fld" style="margin-top:10px"><label>アイコンの色</label><input type="color" id="dispcolor-input" data-fk="dispcolor-input" value="'+esc(getDisplayColor())+'"></div>'+
     '<div class="muted" style="margin-top:8px">画面右上に常に表示されます。この端末・ブラウザだけに保存され、本人確認のためのものではありません（誰が使っているか分かりやすくするためです）。</div>',
     '<button class="btn" data-act="modal-close">キャンセル</button>'+
     '<button class="btn primary sp" data-act="dispname-save">保存</button>');
@@ -624,7 +644,7 @@ function startPresenceHeartbeat(){
   function beat(){
     const n2 = getDisplayName();
     if(!n2){ stopPresenceHeartbeat(); return; }
-    store.merge("presence", presenceId, {name:n2, updatedAt:now()});
+    store.merge("presence", presenceId, {name:n2, color:getDisplayColor(), updatedAt:now()});
   }
   beat();
   if(presenceTimer) clearInterval(presenceTimer);
@@ -644,11 +664,12 @@ function renderPresence(){
   });
   const seen = {};
   const uniq = [];
-  others.forEach(p=>{ const nm=(p.name||"").trim(); if(nm && !seen[nm]){ seen[nm]=true; uniq.push(nm); } });
-  el.innerHTML = uniq.slice(0,8).map(nm=>{
-    const surname = nm.split(/[\s　]+/)[0];
+  others.forEach(p=>{ const nm=(p.name||"").trim(); if(nm && !seen[nm]){ seen[nm]=true; uniq.push({name:nm, color:p.color||DEFAULT_DISPLAY_COLOR}); } });
+  el.innerHTML = uniq.slice(0,8).map(p=>{
+    const surname = p.name.split(/[\s　]+/)[0];
     const shown = surname.length>2 ? surname.slice(0,2) : surname;
-    return '<span class="presence-dot" title="'+esc(nm)+'さんが閲覧中">'+esc(shown)+'</span>';
+    const c = p.color;
+    return '<span class="presence-dot" style="background:color-mix(in srgb, '+esc(c)+' 30%, transparent);border-color:'+esc(c)+';color:'+textForColor(c)+'" title="'+esc(p.name)+'さんが閲覧中">'+esc(shown)+'</span>';
   }).join("");
 }
 function cfg(){
@@ -1228,7 +1249,8 @@ async function onModalClick(e){
   }
   else if(a==="dispname-save"){
     const v = (document.getElementById("dispname-input")||{}).value||"";
-    setDisplayName(v);
+    const c = (document.getElementById("dispcolor-input")||{}).value||DEFAULT_DISPLAY_COLOR;
+    setDisplayName(v, c);
     closeModal();
   }
 }
