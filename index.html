@@ -80,6 +80,8 @@ window.PAMPH_FIREBASE_CONFIG = {
   .user-badge.set{background:var(--accent-soft); color:var(--accent-ink); border-color:var(--accent)}
   .presence-list{display:flex; gap:6px; align-items:center}
   .presence-dot{flex:none; width:35px; height:35px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; background:var(--chip); color:var(--ink-soft); border:2px solid var(--line-strong)}
+  .user-row{display:flex; align-items:center; gap:8px; margin-left:auto}
+  @media (max-width:700px){ .user-row{flex-basis:100%; margin-left:0; margin-top:8px; justify-content:flex-end} }
 
   .tabs{max-width:1180px; margin:0 auto; padding:10px 16px 12px; display:flex; gap:6px; flex-wrap:wrap}
   .tabs button{position:relative; border:1px solid var(--line); background:var(--panel); color:var(--ink-soft); padding:8px 14px; border-radius:999px; font-size:13px; font-weight:700; cursor:pointer; transition:background .12s ease, border-color .12s ease, box-shadow .12s ease, filter .1s ease, transform .08s ease}
@@ -351,8 +353,10 @@ window.PAMPH_FIREBASE_CONFIG = {
     <button data-tab="catalog"   aria-selected="false">WEBカタログ</button>
     <button data-tab="settings"  aria-selected="false">設定</button>
     <button data-tab="feedback"  aria-selected="false">意見箱</button>
-    <span id="presenceList" class="presence-list" style="margin-left:auto"></span>
-    <button type="button" class="user-badge" id="userBadge" title="クリックして名前を設定・変更">…</button>
+    <span class="user-row">
+      <span id="presenceList" class="presence-list"></span>
+      <button type="button" class="user-badge" id="userBadge" title="クリックして名前を設定・変更">…</button>
+    </span>
   </nav>
 </header>
 
@@ -969,9 +973,9 @@ function boot(){
       if(!chatPanel.classList.contains("hide")){
         if(!chatBooted){
           chatBooted = true;
-          pushChatMsg("bot","こんにちは！パンフレットの在庫・発注状況・過去の履歴や、アプリの使い方について質問できます。<br>例）「〇〇店の8月の発注状況」「◯◯の在庫は？」「◯◯の発注推移」「◯◯の印刷発注状況」「9月の集計」「準備済みとは」");
+          pushChatMsg("bot","こんにちは！パンフレットの在庫・発注状況やアプリの使い方について質問できます。<br>例）「〇〇店の発注状況」「◯◯の在庫は？」「準備済みとは」");
         }
-        if(chatInput) chatInput.focus();
+        if(chatInput && window.innerWidth > 700) chatInput.focus();
       }
     });
   }
