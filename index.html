@@ -72,6 +72,9 @@ window.PAMPH_FIREBASE_CONFIG = {
   .badge{font-size:11px; font-weight:700; padding:5px 10px; border-radius:999px; background:var(--chip); color:var(--ink-soft)}
   .badge b{color:var(--ink)}
   .badge.alert{background:color-mix(in srgb, var(--danger) 14%, transparent); color:var(--danger)}
+  .user-badge{flex:none; width:36px; height:36px; border-radius:50%; padding:0; border:2px solid var(--line-strong); background:var(--panel-2); color:var(--ink-soft); cursor:pointer; font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:center; overflow:hidden; white-space:nowrap}
+  .user-badge:hover{border-color:var(--accent); color:var(--accent-ink)}
+  .user-badge.set{background:var(--accent-soft); color:var(--accent-ink); border-color:var(--accent)}
 
   .tabs{max-width:1180px; margin:0 auto; padding:10px 16px 12px; display:flex; gap:6px; flex-wrap:wrap}
   .tabs button{position:relative; border:1px solid var(--line); background:var(--panel); color:var(--ink-soft); padding:8px 14px; border-radius:999px; font-size:13px; font-weight:700; cursor:pointer}
@@ -328,6 +331,7 @@ window.PAMPH_FIREBASE_CONFIG = {
     <button data-tab="catalog"   aria-selected="false">WEBカタログ</button>
     <button data-tab="settings"  aria-selected="false">設定</button>
     <button data-tab="feedback"  aria-selected="false">意見箱</button>
+    <button type="button" class="user-badge" id="userBadge" title="クリックして名前を設定・変更" style="margin-left:auto">…</button>
   </nav>
 </header>
 
@@ -578,6 +582,26 @@ const UI = {
 try{ const p=JSON.parse(localStorage.getItem("pamph_prefs")||"{}"); if(p.storeId)UI.storeId=p.storeId; if(p.orderer)UI.orderer=p.orderer; }catch(e){}
 function savePrefs(){ try{ localStorage.setItem("pamph_prefs", JSON.stringify({storeId:UI.storeId, orderer:UI.orderer})); }catch(e){} }
 
+/* ---------- 右上の利用者名バッジ（本人確認ではなく、自己申告の表示用） ---------- */
+function getDisplayName(){ try{ return localStorage.getItem("pamph_display_name")||""; }catch(e){ return ""; } }
+function setDisplayName(v){ try{ localStorage.setItem("pamph_display_name", (v||"").trim()); }catch(e){} renderUserBadge(); }
+function renderUserBadge(){
+  const el = $("#userBadge"); if(!el) return;
+  const nm = getDisplayName();
+  const surname = nm ? nm.trim().split(/[\s　]+/)[0] : "";
+  const shown = surname.length > 2 ? surname.slice(0,2) : surname;
+  el.textContent = shown || "＋";
+  el.title = surname ? surname+"さん（クリックで変更）" : "クリックして名前を設定";
+  el.classList.toggle("set", !!surname);
+}
+function promptDisplayName(){
+  openModal("利用者名の設定",
+    '<div class="fld"><label>お名前</label><input type="text" id="dispname-input" data-fk="dispname-input" value="'+esc(getDisplayName())+'" placeholder="例）鈴木"></div>'+
+    '<div class="muted" style="margin-top:8px">画面右上に常に表示されます。この端末・ブラウザだけに保存され、本人確認のためのものではありません（誰が使っているか分かりやすくするためです）。</div>',
+    '<button class="btn" data-act="modal-close">キャンセル</button>'+
+    '<button class="btn primary sp" data-act="dispname-save">保存</button>');
+}
+
 function cfg(){
   const c = DB.config.app || {};
   return {
@@ -814,6 +838,9 @@ function boot(){
   $("#tour").addEventListener("click", onTourClick);
   const brandTitle = $("#brandTitle");
   if(brandTitle) brandTitle.addEventListener("click", playBootSplash);
+  const userBadge = $("#userBadge");
+  if(userBadge) userBadge.addEventListener("click", promptDisplayName);
+  renderUserBadge();
 
   const chatFab = $("#chatFab"), chatPanel = $("#chatPanel"), chatClose = $("#chatClose"),
         chatInput = $("#chatInput"), chatSend = $("#chatSend");
@@ -1140,6 +1167,11 @@ async function onModalClick(e){
     const typeId = b.dataset.type;
     await store.remove("stockLogs", b.dataset.id);
     openStockHistory(typeId);
+  }
+  else if(a==="dispname-save"){
+    const v = (document.getElementById("dispname-input")||{}).value||"";
+    setDisplayName(v);
+    closeModal();
   }
 }
 
