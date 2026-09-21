@@ -84,7 +84,7 @@ window.PAMPH_FIREBASE_CONFIG = {
   .tab-badge{position:absolute; top:-5px; right:-5px; min-width:17px; height:17px; padding:0 4px; border-radius:999px; background:var(--danger); color:#fff; font-size:10px; line-height:17px; text-align:center; font-weight:700; box-shadow:0 0 0 2px var(--panel)}
 
   main{max-width:1180px; margin:0 auto; padding:16px}
-  .banner{position:fixed; top:12px; left:50%; transform:translateX(-50%); z-index:120; width:calc(100% - 32px); max-width:640px; padding:10px 14px; border-radius:12px; font-size:13px;
+  .banner{position:fixed; top:12px; left:50%; transform:translateX(-50%); z-index:15; width:calc(100% - 32px); max-width:640px; padding:10px 14px; border-radius:12px; font-size:13px;
     display:flex; align-items:flex-start; gap:12px; box-shadow:var(--shadow);
     background:color-mix(in srgb, var(--accent-soft) 86%, transparent);
     color:var(--accent-ink); border:1px solid color-mix(in srgb,var(--accent) 30%, var(--line))}
@@ -620,17 +620,20 @@ function renderUserBadge(){
     el.style.background = ""; el.style.borderColor = ""; el.style.color = "";
   }
 }
-function promptDisplayName(){
+function promptDisplayName(forced){
   openModal("利用者名の設定",
     '<div class="fld"><label>お名前</label><input type="text" id="dispname-input" data-fk="dispname-input" value="'+esc(getDisplayName())+'" placeholder="例）鈴木"></div>'+
     '<div class="fld" style="margin-top:10px"><label>アイコンの色</label><input type="color" id="dispcolor-input" data-fk="dispcolor-input" value="'+esc(getDisplayColor())+'"></div>'+
-    '<div class="muted" style="margin-top:8px">画面右上に常に表示されます。この端末・ブラウザだけに保存され、本人確認のためのものではありません（誰が使っているか分かりやすくするためです）。</div>',
-    '<button class="btn" data-act="modal-close">キャンセル</button>'+
-    '<button class="btn primary sp" data-act="dispname-save">保存</button>');
+    '<div class="muted" style="margin-top:8px">画面右上に常に表示されます。この端末・ブラウザだけに保存され、本人確認のためのものではありません（誰が使っているか分かりやすくするためです）。</div>'+
+    (forced ? '<div class="muted" style="margin-top:8px;color:var(--danger)">※ご利用には、お名前の入力・保存が必要です。</div>' : ''),
+    forced
+      ? '<button class="btn primary sp" data-act="dispname-save">保存</button>'
+      : '<button class="btn" data-act="modal-close">キャンセル</button><button class="btn primary sp" data-act="dispname-save">保存</button>',
+    {noClose: !!forced});
 }
 function promptDisplayNameFirstTime(){
   modalCloseCb = function(){ maybeAutoTour(UI.tab); };
-  promptDisplayName();
+  promptDisplayName(true);
 }
 
 /* ---------- 在籍表示（他に開いている人をリアルタイムに表示） ---------- */
@@ -911,7 +914,7 @@ function boot(){
   const brandTitle = $("#brandTitle");
   if(brandTitle) brandTitle.addEventListener("click", playBootSplash);
   const userBadge = $("#userBadge");
-  if(userBadge) userBadge.addEventListener("click", promptDisplayName);
+  if(userBadge) userBadge.addEventListener("click", ()=> promptDisplayName(false));
   renderUserBadge();
   if(getDisplayName()) startPresenceHeartbeat();
   window.addEventListener("beforeunload", stopPresenceHeartbeat);
@@ -950,7 +953,7 @@ function boot(){
     const tourOpen = !$("#tour").classList.contains("hide");
     if(e.key==="Escape"){
       if(tourOpen){ endTour(); return; }
-      if(!$("#modal").classList.contains("hide")){ closeModal(); }
+      if(!$("#modal").classList.contains("hide") && !modalNoClose){ closeModal(); }
       return;
     }
     if(e.key==="Enter" && tourOpen){
@@ -962,27 +965,37 @@ function boot(){
       const ae = document.activeElement;
       if(ae && ae.id==="set-pw"){ const b=$('[data-act="settings-unlock"]'); if(b){ e.preventDefault(); b.click(); } return; }
       if(ae && ae.id==="pw-confirm-input"){ const b=$('[data-act="pw-confirm-run"]'); if(b){ e.preventDefault(); b.click(); } return; }
+      if(ae && ae.id==="dispname-input"){ const b=$('[data-act="dispname-save"]'); if(b){ e.preventDefault(); b.click(); } return; }
     }
   });
 }
 let bannerTimer = null;
+function positionBanner(){
+  const b = $("#banner"), hdr = $(".appbar");
+  if(!b || !hdr) return;
+  b.style.top = (hdr.getBoundingClientRect().bottom + 10) + "px";
+}
 function showBanner(msg,type){
   const b = $("#banner");
   b.className = "banner" + (type==="err" ? " err" : "");
   b.innerHTML = '<span class="banner-msg"></span><button type="button" class="banner-x" aria-label="閉じる">×</button>';
   b.querySelector(".banner-msg").textContent = msg;
+  positionBanner();
   if(bannerTimer){ clearTimeout(bannerTimer); bannerTimer = null; }
   if(type !== "err") bannerTimer = setTimeout(hideBanner, 30000);
 }
 function hideBanner(){ if(bannerTimer){ clearTimeout(bannerTimer); bannerTimer = null; } const b=$("#banner"); if(b) b.className = "banner hide"; }
+window.addEventListener("resize", ()=>{ const b=$("#banner"); if(b && !b.classList.contains("hide")) positionBanner(); });
 
 /* ---------- モーダル / チュートリアル / 使い方ガイド ---------- */
+let modalNoClose = false;
 function openModal(title, bodyHtml, footHtml, opts){
   const m = $("#modal");
   const wide = opts && opts.wide;
+  modalNoClose = !!(opts && opts.noClose);
   m.innerHTML =
     '<div class="modal-card'+(wide?" wide":"")+'" role="dialog" aria-modal="true">'+
-      '<div class="modal-head"><b>'+esc(title)+'</b><button type="button" class="modal-x" data-act="modal-close" aria-label="閉じる">×</button></div>'+
+      '<div class="modal-head"><b>'+esc(title)+'</b>'+(modalNoClose?'':'<button type="button" class="modal-x" data-act="modal-close" aria-label="閉じる">×</button>')+'</div>'+
       '<div class="modal-body">'+bodyHtml+'</div>'+
       '<div class="modal-foot">'+(footHtml||'<button class="btn primary sp" data-act="modal-close">閉じる</button>')+'</div>'+
     '</div>';
@@ -991,6 +1004,7 @@ function openModal(title, bodyHtml, footHtml, opts){
 let modalCloseCb = null;
 function closeModal(){
   const m=$("#modal"); m.className="modal-wrap hide"; m.innerHTML="";
+  modalNoClose = false;
   if(modalCloseCb){ const cb=modalCloseCb; modalCloseCb=null; cb(); }
 }
 
@@ -1225,7 +1239,7 @@ function openGuide(tab){
     '<button class="btn sm sp" data-act="modal-close">閉じる</button>');
 }
 async function onModalClick(e){
-  if(e.target.id === "modal"){ closeModal(); return; }
+  if(e.target.id === "modal"){ if(!modalNoClose) closeModal(); return; }
   const b = e.target.closest("[data-act]"); if(!b) return;
   const a = b.dataset.act;
   if(a==="modal-close"){ closeModal(); }
@@ -1250,6 +1264,7 @@ async function onModalClick(e){
   else if(a==="dispname-save"){
     const v = (document.getElementById("dispname-input")||{}).value||"";
     const c = (document.getElementById("dispcolor-input")||{}).value||DEFAULT_DISPLAY_COLOR;
+    if(!v.trim()){ showBanner("お名前を入力してください。","err"); return; }
     setDisplayName(v, c);
     closeModal();
   }
