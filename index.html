@@ -79,8 +79,11 @@ window.PAMPH_FIREBASE_CONFIG = {
   .presence-dot{flex:none; width:35px; height:35px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; background:var(--chip); color:var(--ink-soft); border:2px solid var(--line-strong)}
 
   .tabs{max-width:1180px; margin:0 auto; padding:10px 16px 12px; display:flex; gap:6px; flex-wrap:wrap}
-  .tabs button{position:relative; border:1px solid var(--line); background:var(--panel); color:var(--ink-soft); padding:8px 14px; border-radius:999px; font-size:13px; font-weight:700; cursor:pointer}
+  .tabs button{position:relative; border:1px solid var(--line); background:var(--panel); color:var(--ink-soft); padding:8px 14px; border-radius:999px; font-size:13px; font-weight:700; cursor:pointer; transition:background .12s ease, border-color .12s ease, box-shadow .12s ease, filter .1s ease, transform .08s ease}
+  .tabs button:hover{background:color-mix(in srgb, #F39800 14%, var(--panel)); border-color:#F39800; color:var(--ink); box-shadow:0 0 8px color-mix(in srgb, #F39800 45%, transparent)}
+  .tabs button:active{transform:translateY(1px) scale(.97)}
   .tabs button[aria-selected="true"]{background:#F39800; border-color:#F39800; color:#fff}
+  .tabs button[aria-selected="true"]:hover{background:#F39800; filter:brightness(1.1); box-shadow:0 0 8px color-mix(in srgb, #F39800 55%, transparent)}
   .tab-badge{position:absolute; top:-5px; right:-5px; min-width:17px; height:17px; padding:0 4px; border-radius:999px; background:var(--danger); color:#fff; font-size:10px; line-height:17px; text-align:center; font-weight:700; box-shadow:0 0 0 2px var(--panel)}
 
   main{max-width:1180px; margin:0 auto; padding:16px}
@@ -111,9 +114,11 @@ window.PAMPH_FIREBASE_CONFIG = {
   input[type=color]{padding:2px; width:44px; height:34px}
   input[type=checkbox]{width:16px;height:16px}
 
-  .btn{border:1px solid var(--line-strong); background:var(--panel-2); color:var(--ink); font-weight:700; font-size:13px; padding:8px 14px; border-radius:10px; cursor:pointer}
+  .btn{border:1px solid var(--line-strong); background:var(--panel-2); color:var(--ink); font-weight:700; font-size:13px; padding:8px 14px; border-radius:10px; cursor:pointer; transition:transform .08s ease, filter .1s ease, box-shadow .1s ease}
   .btn:hover{border-color:var(--accent)}
+  .btn:active{transform:translateY(1px) scale(.97)}
   .btn.primary{background:var(--accent); border-color:var(--accent); color:#fff}
+  .btn.primary:hover{filter:brightness(1.1); box-shadow:0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent)}
   .btn.sm{padding:5px 9px; font-size:12px; border-radius:8px}
   .btn.danger{color:var(--danger); border-color:color-mix(in srgb,var(--danger) 35%,var(--line))}
   .btn:disabled{opacity:.5; cursor:not-allowed}
@@ -262,7 +267,9 @@ window.PAMPH_FIREBASE_CONFIG = {
   @keyframes bootFill{ from{ clip-path:inset(100% 0 0 0) } to{ clip-path:inset(0% 0 0 0) } }
 
   /* 検索チャット */
-  .chat-fab{ position:fixed; right:20px; bottom:20px; z-index:55; width:54px; height:54px; border-radius:18px; border:0; background:#F39800; color:#fff; font-size:23px; box-shadow:var(--shadow); cursor:pointer; display:flex; align-items:center; justify-content:center }
+  .chat-fab{ position:fixed; right:20px; bottom:20px; z-index:55; width:54px; height:54px; border-radius:18px; border:0; background:#F39800; color:#fff; font-size:23px; box-shadow:var(--shadow); cursor:pointer; display:flex; align-items:center; justify-content:center; transition:transform .08s ease, filter .1s ease, box-shadow .1s ease }
+  .chat-fab:hover{ filter:brightness(1.1); box-shadow:var(--shadow), 0 0 0 4px color-mix(in srgb, #F39800 35%, transparent) }
+  .chat-fab:active{ transform:translateY(1px) scale(.97) }
   .chat-panel{ position:fixed; right:20px; bottom:84px; z-index:55; width:340px; max-width:calc(100vw - 32px); height:440px; max-height:calc(100vh - 140px); background:var(--panel); border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow); display:flex; flex-direction:column; overflow:hidden; transition:opacity .2s ease, transform .2s ease }
   .chat-panel.hide{ opacity:0; pointer-events:none; transform:translateY(10px) }
   .chat-head{ padding:10px 12px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center }
@@ -840,12 +847,12 @@ function boot(){
   const render = debounce(renderAll, 60);
   COLLS.forEach(coll=> store.watch(coll, m=>{
     DB[coll]=m;
+    if(coll==="presence"){ renderPresence(); return; }
     if(coll==="stores") storesReady = true;
     if(coll==="pamphletTypes") typesReady = true;
     maybeSeed();
     if(coll==="pamphletTypes") fixSortOrders();
     backfillCovers(); backfillAliases(); seedCatalogsV1(); maybeAutoPick(); render();
-    if(coll==="presence") renderPresence();
   }));
   setInterval(renderPresence, 10000); // 古くなった在籍表示を定期的に消す
 
@@ -1752,7 +1759,7 @@ function viewSummary(){
       '<td class="num"><b>'+raw+'</b> '+u+'</td>'+
       '<td class="num">'+copies+'</td>'+
       '<td class="num">'+num(t.stockQty)+' 部</td>'+
-      '<td style="white-space:nowrap"><input class="short" type="number" min="0" id="rq-'+t.id+'" data-fk="rq-'+t.id+'" value="'+(copies||"")+'"> 部'+
+      '<td style="white-space:nowrap"><input class="short" type="text" inputmode="numeric" pattern="[0-9]*" id="rq-'+t.id+'" data-fk="rq-'+t.id+'" value="'+(copies||"")+'"> 部'+
         ' <button class="btn sm" data-act="po-add" data-id="'+t.id+'">依頼する</button></td>'+
     '</tr>';
   }).join("");
@@ -1777,7 +1784,7 @@ function viewPrint(){
     const sopts = PRINT_STATUS.map(s=> '<option value="'+s.name+'" '+((p.status||"依頼中")===s.name?"selected":"")+'>'+s.name+'</option>').join("");
     return '<tr class="'+(unconf?"po-new":"")+'">'+
       '<td style="min-width:180px; text-align:left; vertical-align:middle">'+(unconf?'<span class="pill" style="background:var(--danger);margin-right:6px">新規</span>':'')+esc(p.typeName||t.name||"?")+'</td>'+
-      '<td><input class="short" type="number" min="0" data-act="po-qty" data-id="'+p.id+'" data-fk="poq-'+p.id+'" value="'+num(p.qty)+'"> 部</td>'+
+      '<td><input class="short" type="text" inputmode="numeric" pattern="[0-9]*" data-act="po-qty" data-id="'+p.id+'" data-fk="poq-'+p.id+'" value="'+num(p.qty)+'"> 部</td>'+
       '<td><input class="grow" type="text" data-act="po-note" data-id="'+p.id+'" data-fk="pon-'+p.id+'" value="'+esc(p.note||"")+'" placeholder="印刷所・仕様など"></td>'+
       '<td><select class="po-status-select" data-act="po-status" data-id="'+p.id+'" style="color:#fff;background:'+printStatusColor(p.status||"依頼中")+'">'+sopts+'</select></td>'+
       '<td><input type="date" data-act="po-due" data-id="'+p.id+'" data-fk="pod-'+p.id+'" value="'+esc(p.dueDate||"")+'"></td>'+
@@ -1794,7 +1801,7 @@ function viewPrint(){
     '<div class="row">'+
       '<div class="fld"><label>状態で絞り込み</label><select data-act="pofilter">'+stFilterOpts+'</select></div>'+
       '<div class="fld"><label>種類を追加</label><select data-act="po-newtype" data-fk="po-newtype"><option value="">種類を選択</option>'+addTypeOpts+'</select></div>'+
-      '<div class="fld" style="min-width:110px"><label>部数</label><input type="number" min="0" id="po-newqty" data-fk="po-newqty" value="0"></div>'+
+      '<div class="fld" style="min-width:110px"><label>部数</label><input type="text" inputmode="numeric" pattern="[0-9]*" id="po-newqty" data-fk="po-newqty" value="0"></div>'+
       '<div class="fld" style="min-width:130px"><label>対象月</label><input type="month" id="po-newmonth" data-fk="po-newmonth" value="'+esc(UI.sumMonth)+'"></div>'+
       '<div class="fld" style="min-width:auto"><label>&nbsp;</label><button class="btn" data-act="po-addmanual">追加</button></div>'+
     '</div>'+
@@ -1864,7 +1871,7 @@ function viewStock(){
         '<span class="bdot" style="background:'+bcol+'" title="ブランド"></span>'+
         '<button type="button" class="thumb-btn" data-act="stock-hist" data-id="'+t.id+'" title="増減履歴を見る">'+img+'</button>'+
         '<div class="nm">'+esc(t.name)+'</div>'+
-        '<div class="stock-row"><input type="number" min="0" class="short" data-act="stock-qty" data-id="'+t.id+'" data-fk="stk-'+t.id+'" value="'+qty+'"> 部</div>'+
+        '<div class="stock-row"><input type="text" inputmode="numeric" pattern="[0-9]*" class="short" data-act="stock-qty" data-id="'+t.id+'" data-fk="stk-'+t.id+'" value="'+qty+'"> 部</div>'+
       '</div>';
     }).join("") + '</div>';
   }).join("");
@@ -1977,7 +1984,7 @@ function viewSettings(){
   const storeRows = storesSorted().map((s,i,arr)=>
     '<div class="rowline">'+
       '<input type="text" data-act="s-name" data-id="'+s.id+'" data-fk="sn-'+s.id+'" value="'+esc(s.name)+'" style="width:120px">'+
-      '<input class="grow" type="email" data-act="s-email" data-id="'+s.id+'" data-fk="se-'+s.id+'" value="'+esc(s.email||"")+'" placeholder="担当者メール（「準備済」の通知先／カンマ区切りで複数可）">'+
+      '<input class="grow" type="text" inputmode="email" data-act="s-email" data-id="'+s.id+'" data-fk="se-'+s.id+'" value="'+esc(s.email||"")+'" placeholder="担当者メール（「準備済」の通知先／カンマ区切りで複数可）">'+
       '<label class="muted" style="display:flex;gap:5px;align-items:center"><input type="checkbox" data-act="s-active" data-id="'+s.id+'" '+(s.active!==false?"checked":"")+'>有効</label>'+
       '<button class="btn sm" data-act="s-up" data-id="'+s.id+'" '+(i===0?"disabled":"")+'>↑</button>'+
       '<button class="btn sm" data-act="s-down" data-id="'+s.id+'" '+(i===arr.length-1?"disabled":"")+'>↓</button>'+
@@ -2005,7 +2012,7 @@ function viewSettings(){
           '</span>' : '')+
       '</span>'+
       '<select data-act="t-unit" data-id="'+t.id+'"><option value="部" '+(!isB?"selected":"")+'>部</option><option value="束" '+(isB?"selected":"")+'>束</option></select>'+
-      (isB? '<input class="short" type="number" min="1" data-act="t-perbundle" data-id="'+t.id+'" data-fk="tp-'+t.id+'" value="'+perBundleOf(t)+'" title="1束の目安部数（30〜50）">':'')+
+      (isB? '<input class="short" type="text" inputmode="numeric" pattern="[0-9]*" data-act="t-perbundle" data-id="'+t.id+'" data-fk="tp-'+t.id+'" value="'+perBundleOf(t)+'" title="1束の目安部数（30〜50）">':'')+
       '<label class="btn sm" style="cursor:pointer">画像<input type="file" accept="image/*" data-act="t-img" data-id="'+t.id+'" style="display:none"></label>'+
       '<label class="muted" style="display:flex;gap:5px;align-items:center;flex:none">NEW<input type="checkbox" data-act="t-new" data-id="'+t.id+'" '+(t.isNew?"checked":"")+'></label>'+
       '<label class="muted" style="display:flex;gap:6px;align-items:center;flex:none">表示'+
@@ -2050,11 +2057,11 @@ function viewSettings(){
     '<div class="rowline"><span class="muted" style="min-width:150px">合言葉（トークン）</span>'+
       '<input class="grow" type="text" data-act="n-token" data-fk="n-token" value="'+esc(nc.token||"")+'" placeholder="Apps Script と同じ文字列"></div>'+
     '<div class="rowline"><span class="muted" style="min-width:150px">提出の通知先（在庫管理担当）</span>'+
-      '<input class="grow" type="email" data-act="n-submitto" data-fk="n-submitto" value="'+esc(nc.submitTo||"")+'" placeholder="stock@example.com（カンマ区切りで複数可）"></div>'+
+      '<input class="grow" type="text" inputmode="email" data-act="n-submitto" data-fk="n-submitto" value="'+esc(nc.submitTo||"")+'" placeholder="stock@example.com（カンマ区切りで複数可）"></div>'+
     '<div class="rowline"><span class="muted" style="min-width:150px">印刷発注の通知先（印刷発注担当）</span>'+
-      '<input class="grow" type="email" data-act="n-printto" data-fk="n-printto" value="'+esc(nc.printTo||"")+'" placeholder="print@example.com（カンマ区切りで複数可）"></div>'+
+      '<input class="grow" type="text" inputmode="email" data-act="n-printto" data-fk="n-printto" value="'+esc(nc.printTo||"")+'" placeholder="print@example.com（カンマ区切りで複数可）"></div>'+
     '<div class="rowline"><span class="muted" style="min-width:150px">意見箱の通知先</span>'+
-      '<input class="grow" type="email" data-act="n-feedbackto" data-fk="n-feedbackto" value="'+esc(nc.feedbackTo||"")+'" placeholder="未入力なら「提出の通知先」に届きます（カンマ区切りで複数可）"></div>'+
+      '<input class="grow" type="text" inputmode="email" data-act="n-feedbackto" data-fk="n-feedbackto" value="'+esc(nc.feedbackTo||"")+'" placeholder="未入力なら「提出の通知先」に届きます（カンマ区切りで複数可）"></div>'+
     '<div style="margin-top:10px"><button class="btn" data-act="n-test">テスト送信</button> '+
       '<span class="muted">「提出の通知先」宛にテストメールを送ります。</span></div></section>';
 
@@ -2228,10 +2235,22 @@ async function onChange(e){
     return;
   }
 }
+const GUARDED_ACTS = new Set(["submit","submit-none","fb-send","po-add","po-addmanual","sub-ready","sub-readyall","n-test"]);
+let clickBusy = false;
 async function onClick(e){
   const b = e.target.closest("[data-act]"); if(!b) return;
   const a = b.dataset.act, id = b.dataset.id, idx = b.dataset.idx;
-
+  if(GUARDED_ACTS.has(a)){
+    if(clickBusy) return;
+    clickBusy = true;
+  }
+  try{
+  return await onClickInner(e,b,a,id,idx);
+  } finally {
+    if(GUARDED_ACTS.has(a)) clickBusy = false;
+  }
+}
+async function onClickInner(e,b,a,id,idx){
   /* 発注 */
   if(a==="open-guide"){ openGuide(UI.tab); return; }
   if(a==="fb-send"){
