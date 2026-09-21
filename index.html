@@ -601,6 +601,10 @@ function promptDisplayName(){
     '<button class="btn" data-act="modal-close">キャンセル</button>'+
     '<button class="btn primary sp" data-act="dispname-save">保存</button>');
 }
+function promptDisplayNameFirstTime(){
+  modalCloseCb = function(){ maybeAutoTour(UI.tab); };
+  promptDisplayName();
+}
 
 function cfg(){
   const c = DB.config.app || {};
@@ -913,7 +917,11 @@ function openModal(title, bodyHtml, footHtml, opts){
     '</div>';
   m.className = "modal-wrap";
 }
-function closeModal(){ const m=$("#modal"); m.className="modal-wrap hide"; m.innerHTML=""; }
+let modalCloseCb = null;
+function closeModal(){
+  const m=$("#modal"); m.className="modal-wrap hide"; m.innerHTML="";
+  if(modalCloseCb){ const cb=modalCloseCb; modalCloseCb=null; cb(); }
+}
 
 /* ---------- 使い方ツアー（スポットライト式）＆ 使い方ガイド ---------- */
 const TOURS = {
@@ -2636,6 +2644,8 @@ function start(){
     const forced = new URLSearchParams(location.search).get("tour");
     if(forced && TOURS[forced]){ setTimeout(function(){ startTour(forced); }, 500); return; }
   }catch(e){}
+  let isShot = false; try{ isShot = location.search.indexOf("shot")>=0; }catch(e){}
+  if(!isShot && !getDisplayName()){ promptDisplayNameFirstTime(); return; }
   maybeAutoTour(UI.tab);
 }
 if(document.readyState==="loading") document.addEventListener("DOMContentLoaded", start);
