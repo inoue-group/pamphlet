@@ -1025,7 +1025,7 @@ const TOURS = {
     { sel:'[data-act="submit-none"]', html:'<b>今月は発注なし</b><br>その月に発注が無いときはこちらを押します。押さないと「未提出」の店舗として残ります。' },
     { sel:'[data-act="open-guide"]', html:'<b>使い方ガイド</b><br>分からなくなったら、いつでもここから説明とこのツアーを見られます。' },
     { sel:'#tabs button[data-tab="feedback"]', html:'<b>意見箱</b><br>このアプリやパンフレットについて、気づいたこと・ご要望があれば「意見箱」タブからお気軽にお寄せください。担当者に届きます。', optional:true },
-    { sel:'#chatPanel', html:'<b>🔎 検索チャット</b><br>画面右下のボタンから開けます。パンフレットの在庫・発注状況の確認や、使い方の質問ができます（例：「準備済みとは」「〇〇店の発注状況」）。AIとの会話ではなく、アプリ内のキーワード検索です。<br><span class="dim2">※いまは説明用のサンプルのやり取りを表示しています。</span>', optional:true, onEnter: openChatDemo },
+    { sel:'#chatPanel', html:'<b>🔎 検索チャット</b><br>画面右下のボタンから開けます。パンフレットの在庫・発注状況の確認や、使い方の質問ができます（例：「準備済みとは」「〇〇店の発注状況」）。AIとの会話ではなく、アプリ内のキーワード検索です。<br><span class="dim2">※いまは説明用のサンプルのやり取りを表示しています。</span>', optional:true, onEnter: openChatDemo, aboveForce:true },
     { sel:null, title:"準備OK！", html:'<div class="big">説明は以上です。さっそく入力してみましょう。</div>', last:true }
   ],
   submitted: [
@@ -1211,7 +1211,8 @@ function showTourStep(){
       const hx = Math.max(4, r.left-p), hy = Math.max(4, r.top-p);
       holeHtml = '<div class="tour-hole" style="left:'+hx+'px;top:'+hy+'px;width:'+(r.width+p*2)+'px;height:'+(r.height+p*2)+'px"></div>';
       const vw = window.innerWidth, vh = window.innerHeight, tw = 320, th = 260;
-      if(vw - r.right > tw + 24) tipStyle = 'left:'+(r.right+16)+'px;top:'+Math.max(12, Math.min(r.top, vh-th))+'px';
+      if(s.aboveForce) tipStyle = 'left:'+Math.max(12, Math.min(r.left, vw-tw-16))+'px;bottom:'+(vh-r.top+16)+'px;max-height:calc(100vh - 24px);overflow:auto';
+      else if(vw - r.right > tw + 24) tipStyle = 'left:'+(r.right+16)+'px;top:'+Math.max(12, Math.min(r.top, vh-th))+'px';
       else if(vh - r.bottom > th + 24) tipStyle = 'left:'+Math.max(12, Math.min(r.left, vw-tw-16))+'px;top:'+(r.bottom+16)+'px';
       else if(r.top > th + 24) tipStyle = 'left:'+Math.max(12, Math.min(r.left, vw-tw-16))+'px;top:'+Math.max(12, r.top-16-th)+'px';
       else if(r.left > tw + 24) tipStyle = 'left:'+Math.max(12, r.left-16-tw)+'px;top:'+Math.max(12, Math.min(r.top, vh-th))+'px';
