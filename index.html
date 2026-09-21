@@ -75,6 +75,9 @@ window.PAMPH_FIREBASE_CONFIG = {
   .user-badge{flex:none; width:36px; height:36px; border-radius:50%; padding:0; border:2px solid var(--line-strong); background:var(--panel-2); color:var(--ink-soft); cursor:pointer; font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:center; overflow:hidden; white-space:nowrap}
   .user-badge:hover{border-color:var(--accent); color:var(--accent-ink)}
   .user-badge.set{background:var(--accent-soft); color:var(--accent-ink); border-color:var(--accent)}
+  .presence-list{display:flex; gap:6px; align-items:center}
+  .presence-dot{flex:none; width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; background:var(--chip); color:var(--ink-soft); border:2px solid var(--ok); position:relative}
+  .presence-dot::after{content:""; position:absolute; right:-1px; bottom:-1px; width:9px; height:9px; border-radius:50%; background:var(--ok); border:2px solid var(--panel)}
 
   .tabs{max-width:1180px; margin:0 auto; padding:10px 16px 12px; display:flex; gap:6px; flex-wrap:wrap}
   .tabs button{position:relative; border:1px solid var(--line); background:var(--panel); color:var(--ink-soft); padding:8px 14px; border-radius:999px; font-size:13px; font-weight:700; cursor:pointer}
@@ -331,7 +334,8 @@ window.PAMPH_FIREBASE_CONFIG = {
     <button data-tab="catalog"   aria-selected="false">WEBカタログ</button>
     <button data-tab="settings"  aria-selected="false">設定</button>
     <button data-tab="feedback"  aria-selected="false">意見箱</button>
-    <button type="button" class="user-badge" id="userBadge" title="クリックして名前を設定・変更" style="margin-left:auto">…</button>
+    <span id="presenceList" class="presence-list" style="margin-left:auto"></span>
+    <button type="button" class="user-badge" id="userBadge" title="クリックして名前を設定・変更">…</button>
   </nav>
 </header>
 
@@ -563,8 +567,8 @@ function deepMerge(a,b){
 
 /* ---------- state ---------- */
 const store = makeStore();
-const DB = { stores:{}, pamphletTypes:{}, orderSheets:{}, printOrders:{}, config:{}, catalogs:{}, announcements:{}, feedback:{}, stockLogs:{} };
-const COLLS = ["stores","pamphletTypes","orderSheets","printOrders","config","catalogs","announcements","feedback","stockLogs"];
+const DB = { stores:{}, pamphletTypes:{}, orderSheets:{}, printOrders:{}, config:{}, catalogs:{}, announcements:{}, feedback:{}, stockLogs:{}, presence:{} };
+const COLLS = ["stores","pamphletTypes","orderSheets","printOrders","config","catalogs","announcements","feedback","stockLogs","presence"];
 const DUMP_COLLS = ["stores","pamphletTypes","config","orderSheets","printOrders","catalogs","announcements","feedback","stockLogs"];
 
 const UI = {
@@ -584,7 +588,11 @@ function savePrefs(){ try{ localStorage.setItem("pamph_prefs", JSON.stringify({s
 
 /* ---------- 右上の利用者名バッジ（本人確認ではなく、自己申告の表示用） ---------- */
 function getDisplayName(){ try{ return localStorage.getItem("pamph_display_name")||""; }catch(e){ return ""; } }
-function setDisplayName(v){ try{ localStorage.setItem("pamph_display_name", (v||"").trim()); }catch(e){} renderUserBadge(); }
+function setDisplayName(v){
+  try{ localStorage.setItem("pamph_display_name", (v||"").trim()); }catch(e){}
+  renderUserBadge();
+  if(getDisplayName()) startPresenceHeartbeat(); else stopPresenceHeartbeat();
+}
 function renderUserBadge(){
   const el = $("#userBadge"); if(!el) return;
   const nm = getDisplayName();
@@ -606,6 +614,44 @@ function promptDisplayNameFirstTime(){
   promptDisplayName();
 }
 
+/* ---------- 在籍表示（他に開いている人をリアルタイムに表示） ---------- */
+let presenceId = null, presenceTimer = null;
+const PRESENCE_INTERVAL = 20000;   // 20秒ごとに生存報告
+const PRESENCE_STALE_MS = 50000;   // 50秒応答が無ければ「もう見ていない」とみなす
+function startPresenceHeartbeat(){
+  const nm = getDisplayName();
+  if(!nm){ stopPresenceHeartbeat(); return; }
+  if(!presenceId) presenceId = uid();
+  function beat(){
+    const n2 = getDisplayName();
+    if(!n2){ stopPresenceHeartbeat(); return; }
+    store.merge("presence", presenceId, {name:n2, updatedAt:now()});
+  }
+  beat();
+  if(presenceTimer) clearInterval(presenceTimer);
+  presenceTimer = setInterval(beat, PRESENCE_INTERVAL);
+}
+function stopPresenceHeartbeat(){
+  if(presenceTimer){ clearInterval(presenceTimer); presenceTimer=null; }
+  if(presenceId){ const pid=presenceId; presenceId=null; try{ store.remove("presence", pid); }catch(e){} }
+}
+function renderPresence(){
+  const el = $("#presenceList"); if(!el) return;
+  const cutoff = Date.now() - PRESENCE_STALE_MS;
+  const others = Object.values(DB.presence||{}).filter(p=>{
+    if(p.id === presenceId) return false;
+    const t = Date.parse(p.updatedAt||"");
+    return !isNaN(t) && t >= cutoff;
+  });
+  const seen = {};
+  const uniq = [];
+  others.forEach(p=>{ const nm=(p.name||"").trim(); if(nm && !seen[nm]){ seen[nm]=true; uniq.push(nm); } });
+  el.innerHTML = uniq.slice(0,8).map(nm=>{
+    const surname = nm.split(/[\s　]+/)[0];
+    const shown = surname.length>2 ? surname.slice(0,2) : surname;
+    return '<span class="presence-dot" title="'+esc(nm)+'さんが閲覧中">'+esc(shown)+'</span>';
+  }).join("");
+}
 function cfg(){
   const c = DB.config.app || {};
   return {
@@ -776,7 +822,9 @@ function boot(){
     maybeSeed();
     if(coll==="pamphletTypes") fixSortOrders();
     backfillCovers(); backfillAliases(); seedCatalogsV1(); maybeAutoPick(); render();
+    if(coll==="presence") renderPresence();
   }));
+  setInterval(renderPresence, 10000); // 古くなった在籍表示を定期的に消す
 
   $("#tabs").addEventListener("click", e=>{
     const b = e.target.closest("button[data-tab]"); if(!b) return;
@@ -845,6 +893,9 @@ function boot(){
   const userBadge = $("#userBadge");
   if(userBadge) userBadge.addEventListener("click", promptDisplayName);
   renderUserBadge();
+  if(getDisplayName()) startPresenceHeartbeat();
+  window.addEventListener("beforeunload", stopPresenceHeartbeat);
+  window.addEventListener("pagehide", stopPresenceHeartbeat);
 
   const chatFab = $("#chatFab"), chatPanel = $("#chatPanel"), chatClose = $("#chatClose"),
         chatInput = $("#chatInput"), chatSend = $("#chatSend");
