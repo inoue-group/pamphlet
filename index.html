@@ -288,9 +288,9 @@ window.PAMPH_FIREBASE_CONFIG = {
   .chat-input-row{ display:flex; gap:6px; padding:10px; border-top:1px solid var(--line) }
   .chat-input-row .btn.primary{ background:#F39800; border-color:#F39800 }
   .chat-input-row input{ flex:1; min-width:0 }
-  @media (max-width:480px){
+  @media (max-width:480px){ .chat-fab{ right:14px; bottom:14px } }
+  @media (max-width:700px){
     .chat-panel{ right:0; left:0; top:0; bottom:0; width:auto; height:auto; max-width:100%; max-height:100%; border-radius:0; border:0 }
-    .chat-fab{ right:14px; bottom:14px }
     .chat-head{ padding-top:calc(10px + env(safe-area-inset-top)) }
     .chat-input-row{ padding-bottom:calc(10px + env(safe-area-inset-bottom)) }
   }
