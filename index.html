@@ -46,12 +46,16 @@ window.PAMPH_FIREBASE_CONFIG = {
       --bg:#12151b; --panel:#1b1f27; --panel-2:#20242d; --ink:#e8eaee; --ink-soft:#9aa3b1;
       --line:#2c313b; --line-strong:#3a414d; --accent:#e0894f; --accent-soft:#33261d;
       --accent-ink:#f0a976; --chip:#262b34; --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 22px rgba(0,0,0,.28);
+      --qty-warn-color:#fff; --qty-warn-glow:0 0 6px rgba(216,0,38,.95), 0 0 2px rgba(216,0,38,.95);
+      --qty-warn-weight:500; --qty-warn-border:#ff3b3b; --qty-warn-boxglow:0 0 6px rgba(255,59,59,.6);
     }
   }
   :root[data-theme="dark"]{
     --bg:#12151b; --panel:#1b1f27; --panel-2:#20242d; --ink:#e8eaee; --ink-soft:#9aa3b1;
     --line:#2c313b; --line-strong:#3a414d; --accent:#e0894f; --accent-soft:#33261d;
     --accent-ink:#f0a976; --chip:#262b34; --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 22px rgba(0,0,0,.28);
+    --qty-warn-color:#fff; --qty-warn-glow:0 0 6px rgba(216,0,38,.95), 0 0 2px rgba(216,0,38,.95);
+    --qty-warn-weight:500; --qty-warn-border:#ff3b3b; --qty-warn-boxglow:0 0 6px rgba(255,59,59,.6);
   }
 
   *{box-sizing:border-box}
@@ -82,21 +86,18 @@ window.PAMPH_FIREBASE_CONFIG = {
   .badge{font-size:11px; font-weight:700; padding:5px 10px; border-radius:999px; background:var(--chip); color:var(--ink-soft)}
   .badge b{color:var(--ink)}
   .badge.alert{background:color-mix(in srgb, var(--danger) 14%, transparent); color:var(--danger)}
-  .user-badge{flex:none; width:36px; height:36px; border-radius:50%; padding:0; border:2px solid var(--line-strong); background:var(--panel-2); color:var(--ink-soft); cursor:pointer; font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:center; overflow:hidden; white-space:nowrap}
-  .user-badge:hover{border-color:var(--accent); color:var(--accent-ink)}
-  .user-badge.set{background:var(--accent-soft); color:var(--accent-ink); border-color:var(--accent)}
-  .presence-list{position:relative; display:flex; gap:6px; align-items:center; overflow:hidden}
-  .presence-dot{flex:none; width:35px; height:35px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; background:var(--chip); color:var(--ink-soft); border:2px solid var(--line-strong)}
+  #userBadge.user-badge{-webkit-appearance:none; appearance:none; flex:none; width:35px; height:35px; box-sizing:border-box; border-radius:50%; padding:0; margin:0; border:1px solid var(--line-strong); background:var(--panel-2); color:var(--ink-soft); cursor:pointer; font-size:12px; font-weight:700; line-height:1; font-family:inherit; display:flex; align-items:center; justify-content:center; overflow:hidden; white-space:nowrap}
+  #userBadge.user-badge:hover{border-color:var(--user-color, var(--accent)); background:color-mix(in srgb, var(--user-color, var(--accent)) 20%, var(--panel-2)); box-shadow:0 0 0 1px var(--user-color, var(--accent)), 0 0 10px color-mix(in srgb, var(--user-color, var(--accent)) 65%, transparent)}
+  #userBadge.user-badge.set{background:var(--accent-soft); color:var(--accent-ink)}
+  .presence-list{position:relative; display:flex; gap:2px; align-items:center; overflow:visible; min-width:0}
+  .presence-dot{-webkit-appearance:none; appearance:none; flex:none; width:35px; height:35px; box-sizing:border-box; border-radius:50%; padding:0; margin:0; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; line-height:1; font-family:inherit; background:var(--chip); color:var(--ink-soft); border:1px solid var(--line-strong); overflow:hidden; white-space:nowrap; transition:box-shadow .12s ease, background .12s ease}
+  .presence-dot:hover{border-color:var(--dot-color, var(--accent)); background:color-mix(in srgb, var(--dot-color, var(--accent)) 20%, var(--chip)); box-shadow:0 0 0 1px var(--dot-color, var(--accent)), 0 0 10px color-mix(in srgb, var(--dot-color, var(--accent)) 65%, transparent)}
   .presence-more{cursor:pointer}
-  .presence-mobile-slot{display:none; align-items:center; flex:1 1 auto; min-width:0; overflow:hidden}
-  .presence-pop{position:absolute; top:42px; left:0; z-index:40; display:flex; flex-direction:column; gap:6px; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:8px; box-shadow:var(--shadow); max-height:60vh; overflow:auto; width:max-content; max-width:70vw}
+  .presence-pop{position:absolute; top:42px; right:0; z-index:40; display:flex; flex-direction:column; gap:6px; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:8px; box-shadow:var(--shadow); max-height:60vh; overflow:auto; width:max-content; max-width:70vw}
   .presence-pop-row{display:flex; align-items:center; gap:8px; font-size:12px; white-space:nowrap}
-  .user-row{display:flex; align-items:center; gap:8px; margin-left:auto}
-  @media (max-width:700px){
-    .user-row{margin-left:0}
-    .user-row #presenceList{display:none}
-    .presence-mobile-slot{display:flex}
-  }
+  .user-row{display:flex; align-items:center; gap:2px; margin-left:auto; min-width:0}
+  .presence-mobile-slot{display:none; align-items:center; flex:1 1 auto; min-width:0; justify-content:flex-end}
+  @media (max-width:700px){ .presence-mobile-slot{display:flex} }
 
   .tabs{max-width:1180px; margin:0 auto; padding:10px 16px 12px; display:flex; gap:6px; flex-wrap:wrap}
   .tabs button{position:relative; border:1px solid var(--line); background:var(--panel); color:var(--ink-soft); padding:8px 14px; border-radius:999px; font-size:13px; font-weight:700; cursor:pointer; transition:background .12s ease, border-color .12s ease, box-shadow .12s ease, filter .1s ease, transform .08s ease}
@@ -182,7 +183,7 @@ window.PAMPH_FIREBASE_CONFIG = {
   .stock-row input{width:92px; text-align:center; font-weight:700}
   .card .nm{font-size:12px; font-weight:700; line-height:1.35; min-height:2.7em}
   .card select{width:100%; text-align:center; font-weight:700; color:var(--ink-soft); cursor:pointer}
-  .card select.qset{color:#d80026}
+  .card select.qset{color:var(--qty-warn-color, #d80026); text-shadow:var(--qty-warn-glow, none); font-weight:var(--qty-warn-weight, 700); border-color:var(--qty-warn-border, var(--line-strong)); box-shadow:var(--qty-warn-boxglow, none)}
   .card.has-qty{border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-soft) inset}
   .conv{font-size:11px; color:var(--ink-soft); text-align:center; min-height:1.2em}
   .utag{display:inline-block; font-size:10px; font-weight:700; padding:1px 6px; border-radius:999px; background:var(--chip); color:var(--ink-soft); margin-left:6px}
@@ -328,7 +329,7 @@ window.PAMPH_FIREBASE_CONFIG = {
   .boot-kanji-dim{ color:rgba(255,255,255,.14) }
   .boot-title-row{ display:inline-flex; align-items:flex-end }
   .boot-hd{ font-size:.5em }
-  .boot-kanji-fill{ background:linear-gradient(0deg,#F39800 0%,#F5622A 45%,#FF4FA3 100%); -webkit-background-clip:text; background-clip:text; color:transparent; -webkit-text-fill-color:transparent; clip-path:inset(100% 0 0 0); animation:bootFill 3.3s ease-out forwards }
+  .boot-kanji-fill{ background:linear-gradient(0deg,#F39800 0%,#E8420F 45%,#FF4FA3 100%); -webkit-background-clip:text; background-clip:text; color:transparent; -webkit-text-fill-color:transparent; clip-path:inset(100% 0 0 0); animation:bootFill 3.3s ease-out forwards }
   @keyframes bootFill{ from{ clip-path:inset(100% 0 0 0) } to{ clip-path:inset(0% 0 0 0) } }
 
   /* 検索チャット */
@@ -526,12 +527,7 @@ const CATS = [
 const BRANDS = { sai:{color:"#F39800"}, fp:{color:"#1B434E"}, none:{color:"#ffffff"} };
 const brandColor = b => (BRANDS[b]||BRANDS.sai).color;
 
-const PRINT_STATUS = [
-  {name:"依頼中", color:"#d97706"},
-  {name:"発注済", color:"#2563eb"},
-  {name:"納品済", color:"#16a34a"}
-];
-const printStatusColor = n => (PRINT_STATUS.find(s=>s.name===n)||PRINT_STATUS[0]).color;
+const printStatusColor = n => { const list = cfg().printStatuses; return (list.find(s=>s.name===n)||list[0]||{color:"#6b7280"}).color; };
 
 const DEFAULT_CONFIG = {
   qtyOptions:[0,1,2,3,4,5,6,7,8,9,10,15,20,25,30,40,50,75,100,150,200,300,500],
@@ -542,6 +538,11 @@ const DEFAULT_CONFIG = {
     {name:"担当者確認済", color:"#7c3aed"},
     {name:"手配済",     color:"#d97706"},
     {name:"完了",       color:"#16a34a"}
+  ],
+  printStatuses:[
+    {name:"依頼中", color:"#d97706"},
+    {name:"発注済", color:"#2563eb"},
+    {name:"納品済", color:"#16a34a"}
   ],
   priorities:["通常","急ぎ","最優先"]
 };
@@ -850,15 +851,16 @@ function renderUserBadge(){
   const el = $("#userBadge"); if(!el) return;
   const nm = getDisplayName();
   const surname = nm ? nm.trim().split(/[\s　]+/)[0] : "";
-  const shown = surname.length > 2 ? surname.slice(0,2) : surname;
-  el.textContent = shown || "＋";
-  el.title = surname ? surname+"さん（クリックで変更）" : "クリックして名前を設定";
+  el.textContent = surname ? "自分" : "＋";
+  el.title = surname ? surname+"さん（自分／クリックで変更）" : "クリックして名前を設定";
   el.classList.toggle("set", !!surname);
   if(surname){
     const c = getDisplayColor();
     el.style.background = "color-mix(in srgb, "+c+" 30%, transparent)"; el.style.borderColor = c; el.style.color = textForColor(c);
+    el.style.setProperty("--user-color", c);
   }else{
     el.style.background = ""; el.style.borderColor = ""; el.style.color = "";
+    el.style.removeProperty("--user-color");
   }
 }
 function promptDisplayName(forced){
@@ -917,7 +919,7 @@ function presenceDotHtml(p){
   const surname = p.name.split(/[\s　]+/)[0];
   const shown = surname.length>2 ? surname.slice(0,2) : surname;
   const c = p.color;
-  return '<span class="presence-dot" style="background:color-mix(in srgb, '+esc(c)+' 30%, transparent);border-color:'+esc(c)+';color:'+textForColor(c)+'" title="'+esc(p.name)+'さんが閲覧中">'+esc(shown)+'</span>';
+  return '<span class="presence-dot" style="background:color-mix(in srgb, '+esc(c)+' 30%, transparent);border-color:'+esc(c)+';color:'+textForColor(c)+';--dot-color:'+esc(c)+'" title="'+esc(p.name)+'さんが閲覧中">'+esc(shown)+'</span>';
 }
 function renderPresence(){
   const el = $("#presenceList"); if(!el) return;
@@ -948,7 +950,7 @@ function fitPresenceDotsMobile(uniq){
   }
   const dotEl = el.querySelector(".presence-dot");
   const dotW = dotEl ? dotEl.getBoundingClientRect().width : 35;
-  const gap = 6;
+  const gap = 2;
   const avail = el.clientWidth - dotW - gap; // 「+」ボタン1個分の余白を確保
   let fitCount = Math.max(0, Math.floor((avail + gap) / (dotW + gap)));
   fitCount = Math.min(fitCount, uniq.length - 1);
@@ -976,11 +978,11 @@ function closePresencePop(){
   if(pop) pop.remove();
 }
 function placePresenceList(){
-  const el = $("#presenceList"), mobileSlot = $("#presenceMobileSlot"), userRow = document.querySelector(".user-row");
-  if(!el) return;
+  const userRow = document.querySelector(".user-row"), mobileSlot = $("#presenceMobileSlot"), tabsNav = $("#tabs");
+  if(!userRow) return;
   const isMobile = presenceMobileMQ ? presenceMobileMQ.matches : false;
-  if(isMobile && mobileSlot && el.parentElement !== mobileSlot){ mobileSlot.appendChild(el); }
-  else if(!isMobile && userRow && el.parentElement !== userRow){ userRow.insertBefore(el, userRow.firstChild); }
+  if(isMobile && mobileSlot && userRow.parentElement !== mobileSlot){ mobileSlot.appendChild(userRow); }
+  else if(!isMobile && tabsNav && userRow.parentElement !== tabsNav){ tabsNav.appendChild(userRow); }
   renderPresence();
 }
 function cfg(){
@@ -1468,7 +1470,7 @@ const TOURS = {
     { sel:'[data-act="open-guide"]', html:'<b>使い方ガイド</b><br>分からなくなったら、いつでもここから説明とこのツアーを見られます。' },
     { sel:'#tabs button[data-tab="feedback"]', html:'<b>意見箱</b><br>このアプリやパンフレットについて、気づいたこと・ご要望があれば「意見箱」タブからお気軽にお寄せください。担当者に届きます。', optional:true },
     { sel:'#chatPanel', html:'<b>検索チャット</b><br>画面右下のボタンから開けます。パンフレットの在庫・発注状況の確認や、使い方の質問ができます（例：「準備済みとは」「〇〇店の発注状況」）。AIとの会話ではなく、アプリ内のキーワード検索です。<br><span class="dim2">※いまは説明用のサンプルのやり取りを表示しています。</span>', optional:true, onEnter: openChatDemo, aboveForce:true },
-    { sel:'#chatPanel', guideOnly:true, html:'<b>在庫状況の申告・確認</b><br>検索チャットの「?」ボタンから「在庫状況を申告する」を選ぶと、パンフレット一覧と数量の入力欄が出て、分かるものだけ送信できます。「〇〇店の在庫状況は？」と聞けば、これまでの申告内容や発注間隔をもとにした目安も確認できます。', optional:true, onEnter: openChatDemo, aboveForce:true },
+    { sel:'#chatPanel', guideOnly:true, html:'<b>在庫状況の申告・確認</b><br>検索チャットの「?」ボタンから「在庫状況を申告する」を選ぶと、パンフレット一覧と数量の入力欄が出て、分かるものだけ送信できます。「〇〇店の在庫状況は？」と聞けば、これまでの申告内容や発注間隔をもとにした目安も確認できます。店舗を選んだ時に出る「在庫が少ないかも？」ボタンからも、同じように確認・申告できます。', optional:true, onEnter: openChatDemo, aboveForce:true },
     { sel:null, title:"準備OK！", html:'<div class="big">説明は以上です。さっそく入力してみましょう。</div>', last:true }
   ],
   submitted: [
@@ -1518,7 +1520,8 @@ const GUIDES = {
     '<h4>過去の発注数</h4><p>「履歴」タブで確認できます。</p>'+
     '<h4>在庫状況の申告・確認</h4>'+
     '<ul><li>右下の「検索チャット」を開き、「?」ボタンから「在庫状況を申告する」を選ぶと、パンフレット一覧と数量の入力欄が表示されます。分かるものだけ数量を入れて「送信」を押せば申告完了です</li>'+
-    '<li>「〇〇店の在庫状況は？」のように話しかけると、これまでの申告内容や発注間隔から在庫状況の目安を確認できます</li></ul>'+
+    '<li>「〇〇店の在庫状況は？」のように話しかけると、これまでの申告内容や発注間隔から在庫状況の目安を確認できます</li>'+
+    '<li>店舗を選ぶと表示される「在庫が少ないかも？」ボタンからも、その店舗で在庫が少なくなっている可能性のあるパンフレットを確認・申告できます（申告済みのパンフレットのみが対象です）。新たに対象が増えると、ボタンに赤い印が付きます</li></ul>'+
     '<h4>困ったとき</h4><ul><li>画面がおかしい → 再読み込み（PCは F5、スマホは下へ引っ張る）</li>'+
     '<li>右上が「ローカル demo モード」→ 正しいURLを確認</li>'+
     '<li>提出したのに「未提出」→ 「対象月」を確認</li></ul>',
@@ -2272,7 +2275,7 @@ function viewSummary(){
 
 /* ===== 印刷発注タブ ===== */
 function viewPrint(){
-  const stFilterOpts = ['<option value="">すべての状態</option>'].concat(PRINT_STATUS.map(s=> '<option value="'+s.name+'" '+(s.name===UI.poStatusFilter?"selected":"")+'>'+s.name+'</option>')).join("");
+  const stFilterOpts = ['<option value="">すべての状態</option>'].concat(cfg().printStatuses.map(s=> '<option value="'+s.name+'" '+(s.name===UI.poStatusFilter?"selected":"")+'>'+s.name+'</option>')).join("");
   const poList = Object.values(DB.printOrders)
     .filter(p=> !UI.poStatusFilter || (p.status||"依頼中")===UI.poStatusFilter)
     .sort((a,b)=> String(b.createdAt||"").localeCompare(String(a.createdAt||"")));
@@ -3091,7 +3094,8 @@ const FAQ = [
   { kw:["プリセットカラー","定番の色","色の候補","色を選ぶ丸"], a:"色を選ぶ欄には、定番の色をワンクリックで選べる丸いボタン（プリセット）も用意されています。ボタンを押すと、より細かく色を設定することもできます。" },
   { kw:["カレンダーの使い方","日付の選び方","月の選び方","年月の選び方"], a:"月や日付を選ぶ欄をクリックすると、アプリ専用のカレンダーが開きます。矢印（‹ ›）で年や月を切り替え、月や日にちをクリックすると選択できます。" },
   { kw:["検索チャットとは","ai","人工知能","chatgpt"], a:"この検索チャットはAI（人工知能）による会話ではなく、キーワードに反応して自動で回答を返す仕組みです。アプリの使い方やデータの検索に無料でご利用いただけます。" },
-  { kw:["よくある質問","質問例","質問のテンプレート"], a:"チャット右上の「?」ボタンを押すと、よくある質問の例が一覧で表示されます。タップするとそのまま質問できます。" }
+  { kw:["よくある質問","質問例","質問のテンプレート"], a:"チャット右上の「?」ボタンを押すと、よくある質問の例が一覧で表示されます。タップするとそのまま質問できます。" },
+  { kw:["在庫が少ないかも","少ないかもボタン","バッジ通知","赤い印"], a:"発注タブで店舗を選ぶと表示される「在庫が少ないかも？」ボタンから、その店舗で在庫が少なくなっている可能性のあるパンフレットを確認・申告できます（対象は、これまでにチャットで在庫を申告したことがあるものだけです）。新たに対象が増えるとボタンの左上に赤い印が付き、ボタンを押して開くと消えます。" }
 ];
 let pendingFaqChoices = null;
 let pendingStockChoice = null;
