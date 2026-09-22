@@ -117,6 +117,7 @@ window.PAMPH_FIREBASE_CONFIG = {
   .banner .banner-x{flex:none; background:transparent; border:0; color:inherit; font-size:18px; line-height:1; cursor:pointer; padding:0 2px; opacity:.55}
   .banner .banner-x:hover{opacity:1}
   .banner.err{background:color-mix(in srgb,var(--danger) 22%,transparent); color:var(--danger); border-color:color-mix(in srgb,var(--danger) 35%,var(--line))}
+  .banner.center{top:50% !important; transform:translate(-50%,-50%) !important; text-align:center; z-index:80}
   .banner.hide{display:none}
 
   .panel{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px; margin-bottom:16px}
@@ -341,7 +342,7 @@ window.PAMPH_FIREBASE_CONFIG = {
   .chat-panel.hide{ opacity:0; pointer-events:none; transform:translateY(10px) }
   .chat-head{ padding:10px 12px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center }
   .chat-head b{ font-size:14px }
-  .chat-msgs{ flex:1; overflow:auto; padding:10px 12px; display:flex; flex-direction:column; gap:8px; font-size:13px; line-height:1.6 }
+  .chat-msgs{ flex:1; overflow:auto; overscroll-behavior:contain; padding:10px 12px; display:flex; flex-direction:column; gap:8px; font-size:13px; line-height:1.6 }
   .chat-msg{ max-width:88%; padding:8px 10px; border-radius:10px; word-break:break-word }
   .chat-msg.bot{ background:var(--chip); align-self:flex-start }
   .chat-msg:has(.stock-input-form){ max-width:100% }
@@ -365,6 +366,7 @@ window.PAMPH_FIREBASE_CONFIG = {
     .chat-head{ padding-top:calc(10px + env(safe-area-inset-top)) }
     .chat-input-row{ padding-bottom:calc(10px + env(safe-area-inset-bottom)) }
     body.chat-open-mobile::after{ content:""; position:fixed; inset:0; background:var(--panel); z-index:54 }
+    body.chat-open-mobile{ position:fixed; left:0; right:0; overflow:hidden; touch-action:none }
   }
 
   /* モーダル（チュートリアル・使い方ガイド） */
@@ -668,8 +670,8 @@ function deepMerge(a,b){
 /* ---------- state ---------- */
 const store = makeStore();
 const DB = { stores:{}, pamphletTypes:{}, orderSheets:{}, printOrders:{}, config:{}, catalogs:{}, announcements:{}, feedback:{}, stockLogs:{}, presence:{}, stockReports:{} };
-const COLLS = ["stores","pamphletTypes","orderSheets","printOrders","config","catalogs","announcements","feedback","stockLogs","presence","stockReports"];
-const DUMP_COLLS = ["stores","pamphletTypes","config","orderSheets","printOrders","catalogs","announcements","feedback","stockLogs","stockReports"];
+const COLLS = ["stores","pamphletTypes","orderSheets","printOrders","config","catalogs","announcements","feedback","stockLogs","presence","stockReports","peopleRoles"];
+const DUMP_COLLS = ["stores","pamphletTypes","config","orderSheets","printOrders","catalogs","announcements","feedback","stockLogs","stockReports","peopleRoles"];
 
 const UI = {
   tab:"order",
@@ -831,8 +833,21 @@ function positionCalPop(inputEl){
 
 function getDisplayName(){ try{ return localStorage.getItem("pamph_display_name")||""; }catch(e){ return ""; } }
 function getDisplayColor(){ try{ return localStorage.getItem("pamph_display_color")||DEFAULT_DISPLAY_COLOR; }catch(e){ return DEFAULT_DISPLAY_COLOR; } }
-function getDisplayRole(){ try{ return localStorage.getItem("pamph_display_role")||"staff"; }catch(e){ return "staff"; } }
-function setDisplayRole(role){ try{ localStorage.setItem("pamph_display_role", role==="admin"?"admin":"staff"); }catch(e){} }
+function personKey(name){ return (name||"").trim().replace(/[\/\.\#\$\[\]]/g,"_"); }
+function getDisplayRole(){
+  try{
+    const key = personKey(getDisplayName());
+    if(key && DB.peopleRoles && DB.peopleRoles[key] && DB.peopleRoles[key].role) return DB.peopleRoles[key].role;
+  }catch(e){}
+  try{ return localStorage.getItem("pamph_display_role")||"staff"; }catch(e){ return "staff"; }
+}
+function setDisplayRole(role, nameOverride){
+  const r = role==="admin" ? "admin" : "staff";
+  try{ localStorage.setItem("pamph_display_role", r); }catch(e){}
+  const nm = nameOverride!==undefined ? nameOverride : getDisplayName();
+  const key = personKey(nm);
+  if(key) store.merge("peopleRoles", key, {name:(nm||"").trim(), role:r, updatedAt:now()});
+}
 function setDisplayName(v, color){
   try{ localStorage.setItem("pamph_display_name", (v||"").trim()); }catch(e){}
   if(color){ try{ localStorage.setItem("pamph_display_color", color); }catch(e){} }
@@ -921,7 +936,11 @@ function presenceDotHtml(p){
   const surname = p.name.split(/[\s　]+/)[0];
   const shown = surname.length>2 ? surname.slice(0,2) : surname;
   const c = p.color;
-  return '<span class="presence-dot" style="background:color-mix(in srgb, '+esc(c)+' 30%, transparent);border-color:'+esc(c)+';color:'+textForColor(c)+';--dot-color:'+esc(c)+'" title="'+esc(p.name)+'さんが閲覧中">'+esc(shown)+'</span>';
+  const admin = isAdminRole();
+  const styleStr = 'background:color-mix(in srgb, '+esc(c)+' 30%, transparent);border-color:'+esc(c)+';color:'+textForColor(c)+';--dot-color:'+esc(c)+(admin?';cursor:pointer':'');
+  const attrs = admin ? ' data-act="presence-edit" data-name="'+esc(p.name)+'"' : '';
+  const titleTxt = esc(p.name)+'さんが閲覧中'+(admin?'（タップで編集）':'');
+  return '<span class="presence-dot"'+attrs+' style="'+styleStr+'" title="'+titleTxt+'">'+esc(shown)+'</span>';
 }
 function renderPresence(){
   const el = $("#presenceList"); if(!el) return;
@@ -969,9 +988,11 @@ function renderPresencePop(uniq){
   const pop = document.createElement("div");
   pop.className = "presence-pop";
   pop.id = "presencePop";
+  const admin = isAdminRole();
   pop.innerHTML = uniq.map(p=>{
     const c = p.color;
-    return '<div class="presence-pop-row"><span class="presence-dot" style="background:color-mix(in srgb, '+esc(c)+' 30%, transparent);border-color:'+esc(c)+';color:'+textForColor(c)+'">'+esc(p.name.split(/[\s　]+/)[0].length>2 ? p.name.split(/[\s　]+/)[0].slice(0,2) : p.name.split(/[\s　]+/)[0])+'</span><span>'+esc(p.name)+'さん</span></div>';
+    const attrs = admin ? ' data-act="presence-edit" data-name="'+esc(p.name)+'" style="cursor:pointer"' : '';
+    return '<div class="presence-pop-row"'+attrs+'><span class="presence-dot" style="background:color-mix(in srgb, '+esc(c)+' 30%, transparent);border-color:'+esc(c)+';color:'+textForColor(c)+'">'+esc(p.name.split(/[\s　]+/)[0].length>2 ? p.name.split(/[\s　]+/)[0].slice(0,2) : p.name.split(/[\s　]+/)[0])+'</span><span>'+esc(p.name)+'さん</span></div>';
   }).join("");
   el.appendChild(pop);
 }
@@ -993,7 +1014,8 @@ function cfg(){
     qtyOptions:   (c.qtyOptions && c.qtyOptions.length)? c.qtyOptions : DEFAULT_CONFIG.qtyOptions,
     bundleOptions:(c.bundleOptions && c.bundleOptions.length)? c.bundleOptions : DEFAULT_CONFIG.bundleOptions,
     statuses:     (c.statuses && c.statuses.length)? c.statuses : DEFAULT_CONFIG.statuses,
-    priorities:   (c.priorities && c.priorities.length)? c.priorities : DEFAULT_CONFIG.priorities
+    priorities:   (c.priorities && c.priorities.length)? c.priorities : DEFAULT_CONFIG.priorities,
+    printStatuses:(c.printStatuses && c.printStatuses.length)? c.printStatuses : DEFAULT_CONFIG.printStatuses
   };
 }
 const sortByOrder = (a,b)=> (a.sortOrder||0)-(b.sortOrder||0) || String(a.name||a.title||"").localeCompare(String(b.name||b.title||""),"ja");
@@ -1163,6 +1185,7 @@ function boot(){
 
   $("#tabs").addEventListener("click", e=>{
     const b = e.target.closest("button[data-tab]"); if(!b) return;
+    if(PW_GATED_TABS.indexOf(b.dataset.tab)>=0 && settingsPassHash() && !isAdminRole()){ showAdminOnlyNotice(); return; }
     UI.tab = b.dataset.tab;
     $$("#tabs button").forEach(x=> x.setAttribute("aria-selected", x===b ? "true":"false"));
     renderAll();
@@ -1242,6 +1265,8 @@ function boot(){
   window.addEventListener("resize", debounce(renderPresence, 150));
   const presenceListEl0 = $("#presenceList");
   if(presenceListEl0) presenceListEl0.addEventListener("click", e=>{
+    const editT = e.target.closest('[data-act="presence-edit"]');
+    if(editT){ openPersonEditModal(editT.dataset.name||""); return; }
     if(e.target.closest(".presence-pop")) return;
     const b = e.target.closest('[data-act="presence-toggle"]'); if(!b) return;
     presenceExpanded = !presenceExpanded;
@@ -1338,6 +1363,7 @@ function boot(){
     setTimeout(function(){ pushChatMsg("bot", ans); }, 200);
   }
   let chatFitTimer = null;
+  let chatScrollLockY = 0;
   const chatMobileMQ = window.matchMedia ? window.matchMedia("(max-width:700px)") : null;
   function syncChatPanelHeight(){
     const isMobile = chatMobileMQ ? chatMobileMQ.matches : (window.innerWidth <= 700);
@@ -1370,17 +1396,21 @@ function boot(){
           chatBooted = true;
           pushChatMsg("bot","こんにちは！パンフレットの在庫・発注状況やアプリの使い方について質問できます。<br>例）「〇〇店の発注状況」「◯◯の在庫は？」「スマホでアプリとして使うには？」");
         }
+        chatScrollLockY = window.scrollY || window.pageYOffset || 0;
+        document.body.style.top = (-chatScrollLockY) + "px";
         document.body.classList.add("chat-open-mobile");
         syncChatPanelHeight();
         startChatFitPolling();
         if(chatInput && !(chatMobileMQ ? chatMobileMQ.matches : false)) chatInput.focus();
       } else {
         document.body.classList.remove("chat-open-mobile");
+        document.body.style.top = "";
+        window.scrollTo(0, chatScrollLockY);
         stopChatFitPolling();
       }
     });
   }
-  if(chatClose && chatPanel) chatClose.addEventListener("click", ()=>{ chatPanel.classList.add("hide"); document.body.classList.remove("chat-open-mobile"); stopChatFitPolling(); });
+  if(chatClose && chatPanel) chatClose.addEventListener("click", ()=>{ chatPanel.classList.add("hide"); document.body.classList.remove("chat-open-mobile"); document.body.style.top = ""; window.scrollTo(0, chatScrollLockY); stopChatFitPolling(); });
   if(chatSend) chatSend.addEventListener("click", sendChat);
   if(chatInput) chatInput.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); sendChat(); } });
   if(chatInput){
@@ -1425,10 +1455,10 @@ function positionBanner(){
 }
 function showBanner(msg,type){
   const b = $("#banner");
-  b.className = "banner" + (type==="err" ? " err" : "");
+  b.className = "banner" + (type==="err" ? " err" : "") + (type==="center" ? " center" : "");
   b.innerHTML = '<span class="banner-msg"></span><button type="button" class="banner-x" aria-label="閉じる">×</button>';
   b.querySelector(".banner-msg").textContent = msg;
-  positionBanner();
+  if(type!=="center") positionBanner();
   if(bannerTimer){ clearTimeout(bannerTimer); bannerTimer = null; }
   if(type !== "err") bannerTimer = setTimeout(hideBanner, 10000);
 }
@@ -1710,6 +1740,15 @@ async function onModalClick(e){
       if(pending.kind==="sub-confirm") await runSubConfirm(pending.id);
       else if(pending.kind==="sub-ready") await runSubReady(pending.id);
       else if(pending.kind==="sub-readyall") await runSubReadyAll();
+      else if(pending.kind==="fb-del") await runFbDel(pending.id);
+      else if(pending.kind==="dispname-admin-save"){
+        const p = UI.pendingDispSave; UI.pendingDispSave = null;
+        if(p){ setDisplayName(p.name, p.color); setDisplayRole(p.role, p.name); }
+      }
+      else if(pending.kind==="person-edit-save"){
+        const p = UI.pendingPersonEdit; UI.pendingPersonEdit = null;
+        if(p) await runPersonEdit(p);
+      }
     }
   }
   else if(a==="stock-log-del"){
@@ -1723,10 +1762,28 @@ async function onModalClick(e){
     const v = (document.getElementById("dispname-input")||{}).value||"";
     const c = (document.getElementById("dispcolor-input")||{}).value||DEFAULT_DISPLAY_COLOR;
     const roleInput = document.querySelector('input[name="disprole"]:checked');
+    const wantRole = roleInput ? roleInput.value : "staff";
     if(!v.trim()){ showBanner("お名前を入力してください。","err"); return; }
-    setDisplayRole(roleInput ? roleInput.value : "staff");
+    if(wantRole==="admin" && settingsPassHash()){
+      UI.pendingDispSave = {name:v.trim(), color:c, role:wantRole};
+      closeModal();
+      askPwThen("dispname-admin-save", "");
+      return;
+    }
     setDisplayName(v, c);
+    setDisplayRole(wantRole, v.trim());
     closeModal();
+  }
+  else if(a==="pedit-save"){
+    const oldName = b.dataset.oldname||"";
+    const newName = ((document.getElementById("pedit-name")||{}).value||"").trim();
+    const roleInput = document.querySelector('input[name="peditrole"]:checked');
+    const newRole = roleInput ? roleInput.value : "staff";
+    if(!newName){ showBanner("お名前を入力してください。","err"); return; }
+    UI.pendingPersonEdit = {oldName:oldName, newName:newName, role:newRole};
+    closeModal();
+    if(settingsPassHash()) askPwThen("person-edit-save", "");
+    else { const p = UI.pendingPersonEdit; UI.pendingPersonEdit = null; await runPersonEdit(p); }
   }
   else if(a==="lsh-report"){
     const tid = b.dataset.id, storeId = b.dataset.store;
@@ -1772,11 +1829,20 @@ function settingsUnlocked(){
 }
 function viewSettingsLock(label){
   return '<section class="panel"><h2>'+esc(label||"このタブ")+'はパスワードで保護されています</h2>'+
-    '<div class="sub">管理担当者にパスワードを確認してください。設定タブと共通のパスワードです。</div>'+
+    '<div class="sub">設定タブと共通のパスワードです。</div>'+
     '<div class="row">'+
       '<div class="fld"><label>パスワード</label><input type="text" id="set-pw" data-fk="set-pw" name="pamph_pw_hist" autocomplete="on" autocapitalize="off" autocorrect="off" spellcheck="false"></div>'+
       '<div class="fld" style="min-width:auto"><label>&nbsp;</label><button class="btn primary" data-act="settings-unlock">解除</button></div>'+
     '</div></section>';
+}
+const ADMIN_ONLY_MSG = "こちらは管理者専用機能になります。ご質問・ご要望がありましたら管理者へお問い合わせください。";
+const ADMIN_ONLY_SHORT = "こちらは管理者専用機能です。";
+const PW_GATED_TABS = ["summary","stock","print","settings"];
+function isAdminRole(){ return getDisplayRole()==="admin"; }
+function showAdminOnlyNotice(){ showBanner(ADMIN_ONLY_MSG, "center"); }
+function viewAdminLocked(label){
+  return '<section class="panel"><h2>'+esc(label||"このタブ")+'は管理者専用です</h2>'+
+    '<div class="sub">'+esc(ADMIN_ONLY_SHORT)+'</div></section>';
 }
 async function runSubConfirm(id){
   await store.merge("orderSheets", sheetId(UI.subMonth, id), {confirmedAt: now()});
@@ -1812,6 +1878,35 @@ async function runSubReadyAll(){
   if(!confirm(UI.subMonth+" 分：提出済みの "+targets.length+" 店舗をまとめて「準備済」にします。各店舗へ通知メールも送信されます。よろしいですか？")) return;
   for(const s of targets){ await runSubReady(s.id); }
   showBanner(targets.length+" 店舗をまとめて「準備済」にしました。","info");
+}
+async function runFbDel(id){
+  await store.remove("feedback", id);
+  showBanner("意見・ご要望を削除しました。","info");
+  renderAll();
+}
+async function runPersonEdit(p){
+  const oldKey = personKey(p.oldName), newKey = personKey(p.newName);
+  const matches = Object.entries(DB.presence||{}).filter(([,v])=> (v.name||"").trim()===p.oldName.trim());
+  for(const [pid] of matches){ await store.merge("presence", pid, {name:p.newName}); }
+  if(oldKey && oldKey!==newKey){ try{ await store.remove("peopleRoles", oldKey); }catch(e){} }
+  await store.merge("peopleRoles", newKey, {name:p.newName, role:p.role, updatedAt:now()});
+  showBanner(p.oldName+" さんの情報を更新しました。","info");
+  renderAll();
+}
+function openPersonEditModal(name){
+  const key = personKey(name);
+  const rec = (DB.peopleRoles && DB.peopleRoles[key]) || {};
+  const role = rec.role || "staff";
+  openModal("利用者の編集："+name,
+    '<div class="fld"><label>お名前</label><input type="text" id="pedit-name" data-fk="pedit-name" value="'+esc(name)+'"></div>'+
+    '<div class="fld" style="margin-top:10px"><label>区分</label>'+
+      '<div style="display:flex;gap:16px;align-items:center">'+
+        '<label style="display:flex;gap:6px;align-items:center;font-weight:400;cursor:pointer"><input type="radio" name="peditrole" value="staff" '+(role!=="admin"?"checked":"")+'> 各店舗担当者</label>'+
+        '<label style="display:flex;gap:6px;align-items:center;font-weight:400;cursor:pointer"><input type="radio" name="peditrole" value="admin" '+(role==="admin"?"checked":"")+'> 管理者</label>'+
+      '</div>'+
+    '</div>'+
+    '<div class="muted" style="margin-top:8px">保存にはパスワードの確認が必要です。</div>',
+    '<button class="btn" data-act="modal-close">キャンセル</button><button class="btn primary sp" data-act="pedit-save" data-oldname="'+esc(name)+'">保存</button>');
 }
 function askPwThen(kind, id){
   UI.pendingConfirm = {kind, id};
@@ -1897,11 +1992,11 @@ function renderAll(){
   if(UI.tab==="order")        v.innerHTML = viewOrder();
   else if(UI.tab==="submitted")v.innerHTML = viewSubmitted();
   else if(UI.tab==="history") v.innerHTML = viewHistory();
-  else if(UI.tab==="summary") v.innerHTML = settingsUnlocked() ? viewSummary() : viewSettingsLock("集計タブ");
-  else if(UI.tab==="stock")   v.innerHTML = settingsUnlocked() ? viewStock() : viewSettingsLock("在庫管理タブ");
-  else if(UI.tab==="print")   v.innerHTML = settingsUnlocked() ? viewPrint() : viewSettingsLock("印刷発注タブ");
+  else if(UI.tab==="summary") v.innerHTML = (settingsPassHash()&&!isAdminRole()) ? viewAdminLocked("集計タブ") : (settingsUnlocked() ? viewSummary() : viewSettingsLock("集計タブ"));
+  else if(UI.tab==="stock")   v.innerHTML = (settingsPassHash()&&!isAdminRole()) ? viewAdminLocked("在庫管理タブ") : (settingsUnlocked() ? viewStock() : viewSettingsLock("在庫管理タブ"));
+  else if(UI.tab==="print")   v.innerHTML = (settingsPassHash()&&!isAdminRole()) ? viewAdminLocked("印刷発注タブ") : (settingsUnlocked() ? viewPrint() : viewSettingsLock("印刷発注タブ"));
   else if(UI.tab==="catalog") v.innerHTML = viewCatalog();
-  else if(UI.tab==="settings")v.innerHTML = settingsUnlocked() ? viewSettings() : viewSettingsLock("設定タブ");
+  else if(UI.tab==="settings")v.innerHTML = (settingsPassHash()&&!isAdminRole()) ? viewAdminLocked("設定タブ") : (settingsUnlocked() ? viewSettings() : viewSettingsLock("設定タブ"));
   else if(UI.tab==="feedback") v.innerHTML = viewFeedback();
 
   if(fk){
@@ -2287,7 +2382,7 @@ function viewPrint(){
   const poRows = poList.map(p=>{
     const t = DB.pamphletTypes[p.typeId]||{};
     const unconf = !p.confirmedAt;
-    const sopts = PRINT_STATUS.map(s=> '<option value="'+s.name+'" '+((p.status||"依頼中")===s.name?"selected":"")+'>'+s.name+'</option>').join("");
+    const sopts = cfg().printStatuses.map(s=> '<option value="'+s.name+'" '+((p.status||"依頼中")===s.name?"selected":"")+'>'+s.name+'</option>').join("");
     return '<tr class="'+(unconf?"po-new":"")+'">'+
       '<td style="min-width:260px; text-align:left; vertical-align:middle">'+(unconf?'<span class="pill" style="background:var(--danger);margin-right:6px">新規</span>':'')+esc(p.typeName||t.name||"?")+'</td>'+
       '<td><input class="short" type="text" inputmode="numeric" pattern="[0-9]*" data-act="po-qty" data-id="'+p.id+'" data-fk="poq-'+p.id+'" value="'+num(p.qty)+'"> 部</td>'+
@@ -2486,6 +2581,7 @@ function viewFeedback(){
         (f.store? '<span class="pill" style="background:var(--chip);color:var(--ink)">'+esc(f.store)+'</span>':'')+
         (f.genre? '<span class="muted">'+esc(f.genre)+'</span>':'')+
         (f.name? '<span class="muted">'+esc(f.name)+'</span>':'')+
+        '<button type="button" class="btn sm danger sp" data-act="fb-del" data-id="'+f.id+'" title="この意見・ご要望を削除">削除</button>'+
       '</div>'+
       '<div class="fb-item-body">'+esc(f.text||"")+'</div>'+
       '<div class="fb-item-resp">'+
@@ -2563,6 +2659,12 @@ function viewSettings(){
     '<button class="btn sm danger" data-act="st-del" data-idx="'+i+'">削除</button></div>'
   ).join("");
 
+  const pstRows = c.printStatuses.map((s,i)=>
+    '<div class="rowline"><input type="text" class="grow" data-act="pst-name" data-idx="'+i+'" data-fk="pstn-'+i+'" value="'+esc(s.name)+'">'+
+    '<input type="color" data-act="pst-color" data-idx="'+i+'" value="'+esc(s.color)+'">'+presetColorRow()+
+    '<button class="btn sm danger" data-act="pst-del" data-idx="'+i+'">削除</button></div>'
+  ).join("");
+
   const connInfo = store.mode==="cloud"
     ? '<p class="muted">現在：<b style="color:var(--ok)">'+esc(store.label)+'</b>。全店舗で同じ URL を開けばデータが共有されます。</p>'
     : '<p class="muted">現在：<b>ローカル demo モード</b>（この端末のみ）。全店舗で共有するには、同じフォルダの「セットアップ手順.md」に従って Firebase 設定を <code>index.html</code> 内の <code>PAMPH_FIREBASE_CONFIG</code> に貼り付け、Web にアップロードしてください。</p>';
@@ -2631,6 +2733,9 @@ function viewSettings(){
 
     '<section class="panel"><h2>発注シートのステータス</h2>'+stRows+
     '<div style="margin-top:10px"><button class="btn" data-act="st-add">＋ 追加</button></div></section>'+
+
+    '<section class="panel"><h2>印刷発注のステータス</h2>'+pstRows+
+    '<div style="margin-top:10px"><button class="btn" data-act="pst-add">＋ 追加</button></div></section>'+
 
     catalogEditSection() +
 
@@ -2757,6 +2862,11 @@ async function onChange(e){
     if(a==="st-name") list[idx].name=t.value; else list[idx].color=t.value;
     await store.merge("config","app",{statuses:list, updatedAt:now()}); return;
   }
+  if(a==="pst-name"||a==="pst-color"){
+    const list = cfg().printStatuses.map(x=>Object.assign({},x));
+    if(a==="pst-name") list[idx].name=t.value; else list[idx].color=t.value;
+    await store.merge("config","app",{printStatuses:list, updatedAt:now()}); return;
+  }
 
   /* 設定：インポート */
   if(a==="import"){
@@ -2803,8 +2913,14 @@ async function onClickInner(e,b,a,id,idx){
       "【意見箱】"+(gn||"")+"（"+(st||"店舗未選択")+"）",
       "店舗："+(st||"（未選択）")+"\n氏名："+(nm||"（未記入）")+"\nジャンル："+(gn||"")+"\n日時："+fmtDT(rec.createdAt)+"\n\n"+bd+"\n\nアプリ：https://inoue-group.github.io/pamphlet/");
     if(UI.orderer!==nm && nm){ UI.orderer = nm; savePrefs(); }
-    showBanner("送信しました。ご意見ありがとうございます。"+(sent?"":"（メール通知が未設定のため記録のみ保存しました）"),"info");
+    showBanner("送信しました（"+fmtDT(rec.createdAt).slice(0,10)+"）。ご意見ありがとうございます。"+(sent?"":"（メール通知が未設定のため記録のみ保存しました）"),"info");
     renderAll(); return;
+  }
+  if(a==="fb-del"){
+    if(!isAdminRole()){ showAdminOnlyNotice(); return; }
+    if(settingsPassHash()){ askPwThen("fb-del", id); return; }
+    if(!confirm("この意見・ご要望を削除しますか？")) return;
+    await runFbDel(id); return;
   }
   if(a==="save"){ await flushSave(false); renderAll(); return; }
   if(a==="submit-none"){
@@ -2832,16 +2948,25 @@ async function onClickInner(e,b,a,id,idx){
   if(a==="sub-print"){ doPrint([id], UI.subMonth); return; }
   if(a==="sub-printall"){ doPrint(activeStores().map(s=>s.id), UI.subMonth); return; }
   if(a==="sub-confirm"){
-    if(settingsPassHash()){ askPwThen("sub-confirm", id); return; }
+    if(settingsPassHash()){
+      if(!isAdminRole()){ showAdminOnlyNotice(); return; }
+      askPwThen("sub-confirm", id); return;
+    }
     await runSubConfirm(id); return;
   }
   if(a==="sub-unconfirm"){ await store.merge("orderSheets", sheetId(UI.subMonth, id), {confirmedAt: ""}); renderAll(); return; }
   if(a==="sub-ready"){
-    if(settingsPassHash()){ askPwThen("sub-ready", id); return; }
+    if(settingsPassHash()){
+      if(!isAdminRole()){ showAdminOnlyNotice(); return; }
+      askPwThen("sub-ready", id); return;
+    }
     await runSubReady(id); return;
   }
   if(a==="sub-readyall"){
-    if(settingsPassHash()){ askPwThen("sub-readyall", ""); return; }
+    if(settingsPassHash()){
+      if(!isAdminRole()){ showAdminOnlyNotice(); return; }
+      askPwThen("sub-readyall", ""); return;
+    }
     await runSubReadyAll(); return;
   }
   if(a==="sub-unready"){ await store.merge("orderSheets", sheetId(UI.subMonth, id), {readyAt: ""}); renderAll(); return; }
@@ -2968,6 +3093,8 @@ async function onClickInner(e,b,a,id,idx){
   /* 設定：ステータス／選択肢／バックアップ */
   if(a==="st-add"){ const list=cfg().statuses.concat({name:"新規",color:"#6b7280"}); await store.merge("config","app",{statuses:list, updatedAt:now()}); renderAll(); return; }
   if(a==="st-del"){ const list=cfg().statuses.filter((_,i)=>i!=idx); await store.merge("config","app",{statuses:list, updatedAt:now()}); renderAll(); return; }
+  if(a==="pst-add"){ const list=cfg().printStatuses.concat({name:"新規",color:"#6b7280"}); await store.merge("config","app",{printStatuses:list, updatedAt:now()}); renderAll(); return; }
+  if(a==="pst-del"){ const list=cfg().printStatuses.filter((_,i)=>i!=idx); await store.merge("config","app",{printStatuses:list, updatedAt:now()}); renderAll(); return; }
   if(a==="opts-save"){
     const parse = s => Array.from(new Set(String(s).split(/[,\s]+/).map(x=>parseInt(x,10)).filter(x=>Number.isFinite(x)&&x>=0))).sort((x,y)=>x-y);
     const qa = parse($('[data-act="qty-opts"]').value), ba = parse($('[data-act="bundle-opts"]').value);
@@ -3064,6 +3191,7 @@ const CHAT_TEMPLATES = [
   "メール通知が届かない"
 ];
 const FAQ = [
+  { kw:["管理者","責任者"], a:"管理者は広報課 岡田です。" },
   { kw:["パスワード","暗証番号","pin","ロック解除","解除方法","鍵"], a:"パスワードは「設定」タブの管理担当者にご確認ください。このパスワードは情報保護ではなく<b>誤操作防止</b>が目的のものです。" },
   { kw:["束","部","単位","何束","何部","束と部の違い"], a:"パンフレットは種類ごとに「束」または「部」で管理されています。「束」の種類は目安部数（既定40部）をかけた「約◯部」に自動換算されます。" },
   { kw:["準備済","受け取り","受取","発送準備","梱包","取りに行く"], a:"管理担当者が発送準備を完了すると「準備済」になり、店舗の担当者へ「受け取り、または受け取りされる方への手配をお願いします」という通知メールが自動送信されます。" },
