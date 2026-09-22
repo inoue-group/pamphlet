@@ -337,6 +337,7 @@ window.PAMPH_FIREBASE_CONFIG = {
   .chat-fab:hover{ filter:brightness(1.1); box-shadow:var(--shadow), 0 0 0 4px color-mix(in srgb, #F39800 35%, transparent) }
   .chat-fab:active{ transform:translateY(1px) scale(.97) }
   .chat-panel{ position:fixed; right:20px; bottom:84px; z-index:55; width:340px; max-width:calc(100vw - 32px); height:440px; max-height:calc(100vh - 140px); background:var(--panel); border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow); display:flex; flex-direction:column; overflow:hidden; transition:opacity .2s ease, transform .2s ease }
+  .chat-panel.tour-demo{ height:260px }
   .chat-panel.hide{ opacity:0; pointer-events:none; transform:translateY(10px) }
   .chat-head{ padding:10px 12px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center }
   .chat-head b{ font-size:14px }
@@ -363,6 +364,7 @@ window.PAMPH_FIREBASE_CONFIG = {
     .chat-panel{ right:0; left:0; top:0; bottom:0; width:auto; height:auto; max-width:100%; max-height:100%; border-radius:0; border:0 }
     .chat-head{ padding-top:calc(10px + env(safe-area-inset-top)) }
     .chat-input-row{ padding-bottom:calc(10px + env(safe-area-inset-bottom)) }
+    body.chat-open-mobile::after{ content:""; position:fixed; inset:0; background:var(--panel); z-index:54 }
   }
 
   /* モーダル（チュートリアル・使い方ガイド） */
@@ -1339,13 +1341,14 @@ function boot(){
   const chatMobileMQ = window.matchMedia ? window.matchMedia("(max-width:700px)") : null;
   function syncChatPanelHeight(){
     const isMobile = chatMobileMQ ? chatMobileMQ.matches : (window.innerWidth <= 700);
-    if(!chatPanel || !isMobile) { if(chatPanel){ chatPanel.style.height = ""; chatPanel.style.top = ""; } return; }
+    if(!chatPanel || !isMobile) { if(chatPanel){ chatPanel.style.height = ""; chatPanel.style.top = ""; chatPanel.style.bottom = ""; } return; }
     if(chatPanel.classList.contains("hide")) return;
     if(window.visualViewport){
       const h = Math.round(window.visualViewport.height) + "px";
       const t = Math.round(window.visualViewport.offsetTop) + "px";
       if(chatPanel.style.height !== h) chatPanel.style.height = h;
       if(chatPanel.style.top !== t) chatPanel.style.top = t;
+      if(chatPanel.style.bottom !== "auto") chatPanel.style.bottom = "auto";
     }
   }
   function startChatFitPolling(){
@@ -1367,19 +1370,21 @@ function boot(){
           chatBooted = true;
           pushChatMsg("bot","こんにちは！パンフレットの在庫・発注状況やアプリの使い方について質問できます。<br>例）「〇〇店の発注状況」「◯◯の在庫は？」「スマホでアプリとして使うには？」");
         }
+        document.body.classList.add("chat-open-mobile");
         syncChatPanelHeight();
         startChatFitPolling();
         if(chatInput && !(chatMobileMQ ? chatMobileMQ.matches : false)) chatInput.focus();
       } else {
+        document.body.classList.remove("chat-open-mobile");
         stopChatFitPolling();
       }
     });
   }
-  if(chatClose && chatPanel) chatClose.addEventListener("click", ()=>{ chatPanel.classList.add("hide"); stopChatFitPolling(); });
+  if(chatClose && chatPanel) chatClose.addEventListener("click", ()=>{ chatPanel.classList.add("hide"); document.body.classList.remove("chat-open-mobile"); stopChatFitPolling(); });
   if(chatSend) chatSend.addEventListener("click", sendChat);
   if(chatInput) chatInput.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); sendChat(); } });
   if(chatInput){
-    chatInput.addEventListener("focus", startChatFitPolling);
+    chatInput.addEventListener("focus", ()=>{ syncChatPanelHeight(); startChatFitPolling(); });
     chatInput.addEventListener("blur", ()=> setTimeout(syncChatPanelHeight, 300));
   }
   document.addEventListener("click", e=>{
@@ -1457,7 +1462,7 @@ const TOURS = {
     { sel:null, title:"ようこそ", html:'<div class="big">このアプリは、毎月のパンフレット必要数を入力して担当者に送るためのものです。画面を見ながら順番に説明します（約1分）。</div>' },
     { sel:null, title:"PC・スマホ対応", html:'<div class="big">PC・スマートフォンのどちらでも使えます。インストールやログインは不要です。</div>' },
     { sel:null, title:"ブックマーク推奨", html:'<div class="big">毎月使うので、このページを<b>ブラウザのブックマーク（お気に入り）に登録</b>しておくと便利です。</div>' },
-    { sel:'#themeToggle', html:'<b>表示モードの切り替え</b><br>このスイッチで、明るい表示（ライトモード）と暗い表示（ダークモード）を切り替えられます。初期設定はライトモードです。切り替えた設定はこの端末に記憶されます。', optional:true },
+    { sel:'.theme-switch', html:'<b>表示モードの切り替え</b><br>このスイッチで、明るい表示（ライトモード）と暗い表示（ダークモード）を切り替えられます。初期設定はライトモードです。切り替えた設定はこの端末に記憶されます。', optional:true },
     { sel:'.notice-box', html:'<b>お知らせ</b><br>担当者からの連絡（新しいパンフレットの案内など）がここに表示されます。出ているときは目を通してください。無いときは表示されません。', optional:true },
     { sel:'.brand-legend', html:'<b>ブランドの見分け方</b><br>表紙の左上に付いている丸の色で、パンフレットのブランドが分かります。<br>オレンジ＝彩ハウス、緑＝F.PRODUCTS（色が付いていないものは共通）。' },
     { sel:'[data-act="month"]', html:'<b>① 対象月</b><br>発注する月を選びます。通常はこのままでOK。過去の月を選ぶとその月の内容を確認・修正できます。' },
@@ -1662,7 +1667,7 @@ function showTourStep(){
       const hx = Math.max(4, r.left-p), hy = Math.max(4, r.top-p);
       holeHtml = '<div class="tour-hole" style="left:'+hx+'px;top:'+hy+'px;width:'+(r.width+p*2)+'px;height:'+(r.height+p*2)+'px"></div>';
       const vw = window.innerWidth, vh = window.innerHeight, tw = 320, th = 260;
-      if(s.aboveForce) tipStyle = 'left:'+Math.max(12, Math.min(r.left, vw-tw-16))+'px;bottom:'+(vh-r.top+16)+'px;max-height:calc(100vh - 24px);overflow:auto';
+      if(s.aboveForce){ const avail = Math.max(80, r.top-16-12); tipStyle = 'left:'+Math.max(12, Math.min(r.left, vw-tw-16))+'px;bottom:'+(vh-r.top+16)+'px;max-height:'+avail+'px;overflow:auto'; }
       else if(vw - r.right > tw + 24) tipStyle = 'left:'+(r.right+16)+'px;top:'+Math.max(12, Math.min(r.top, vh-th))+'px';
       else if(vh - r.bottom > th + 24) tipStyle = 'left:'+Math.max(12, Math.min(r.left, vw-tw-16))+'px;top:'+(r.bottom+16)+'px';
       else if(r.top > th + 24) tipStyle = 'left:'+Math.max(12, Math.min(r.left, vw-tw-16))+'px;top:'+Math.max(12, r.top-16-th)+'px';
@@ -3491,6 +3496,7 @@ function openChatDemo(){
   panel.dataset.demoWasHidden = panel.classList.contains("hide") ? "1" : "0";
   panel.dataset.demoHtml = wrap.innerHTML;
   panel.classList.remove("hide");
+  panel.classList.add("tour-demo");
   wrap.innerHTML = "";
   const demoQ = "準備済みとは？";
   pushChatMsg("user", esc(demoQ));
@@ -3501,6 +3507,7 @@ function closeChatDemo(){
   const panel = $("#chatPanel"), wrap = $("#chatMsgs");
   if(!panel || !wrap || panel.dataset.demoSaved !== "1") return;
   wrap.innerHTML = panel.dataset.demoHtml || "";
+  panel.classList.remove("tour-demo");
   if(panel.dataset.demoWasHidden === "1") panel.classList.add("hide");
   delete panel.dataset.demoSaved; delete panel.dataset.demoWasHidden; delete panel.dataset.demoHtml;
 }
