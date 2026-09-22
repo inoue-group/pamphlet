@@ -75,9 +75,9 @@ window.PAMPH_FIREBASE_CONFIG = {
   .theme-switch{position:relative; display:inline-block; width:40px; height:24px; flex:none; vertical-align:middle; cursor:pointer}
   .theme-switch input{-webkit-appearance:none; appearance:none; position:absolute; inset:0; opacity:0; width:100%; height:100%; margin:0; padding:0; cursor:pointer; z-index:1}
   .theme-switch-track{position:absolute; inset:0; background:#dcdce1; border:1px solid var(--line-strong); border-radius:999px; transition:background .18s ease, border-color .18s ease; cursor:pointer}
-  .theme-switch-track::before{content:""; position:absolute; left:2px; top:2px; width:20px; height:20px; background:#fff; border-radius:50%; box-shadow:0 1px 3px rgba(0,0,0,.35); transition:transform .18s ease}
+  .theme-switch-track::before{content:""; position:absolute; left:2px; top:50%; transform:translateY(-50%); width:20px; height:20px; background:#fff; border-radius:50%; box-shadow:0 1px 3px rgba(0,0,0,.35); transition:transform .18s ease}
   .theme-switch input:checked + .theme-switch-track{background:#1f2937; border-color:rgba(255,255,255,.35)}
-  .theme-switch input:checked + .theme-switch-track::before{transform:translateX(16px)}
+  .theme-switch input:checked + .theme-switch-track::before{transform:translateY(-50%) translateX(16px)}
   .badges{display:flex; gap:8px; flex-wrap:wrap}
   .badge{font-size:11px; font-weight:700; padding:5px 10px; border-radius:999px; background:var(--chip); color:var(--ink-soft)}
   .badge b{color:var(--ink)}
@@ -85,10 +85,18 @@ window.PAMPH_FIREBASE_CONFIG = {
   .user-badge{flex:none; width:36px; height:36px; border-radius:50%; padding:0; border:2px solid var(--line-strong); background:var(--panel-2); color:var(--ink-soft); cursor:pointer; font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:center; overflow:hidden; white-space:nowrap}
   .user-badge:hover{border-color:var(--accent); color:var(--accent-ink)}
   .user-badge.set{background:var(--accent-soft); color:var(--accent-ink); border-color:var(--accent)}
-  .presence-list{display:flex; gap:6px; align-items:center}
+  .presence-list{position:relative; display:flex; gap:6px; align-items:center; overflow:hidden}
   .presence-dot{flex:none; width:35px; height:35px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; background:var(--chip); color:var(--ink-soft); border:2px solid var(--line-strong)}
+  .presence-more{cursor:pointer}
+  .presence-mobile-slot{display:none; align-items:center; flex:1 1 auto; min-width:0; overflow:hidden}
+  .presence-pop{position:absolute; top:42px; left:0; z-index:40; display:flex; flex-direction:column; gap:6px; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:8px; box-shadow:var(--shadow); max-height:60vh; overflow:auto; width:max-content; max-width:70vw}
+  .presence-pop-row{display:flex; align-items:center; gap:8px; font-size:12px; white-space:nowrap}
   .user-row{display:flex; align-items:center; gap:8px; margin-left:auto}
-  @media (max-width:700px){ .user-row{flex-basis:100%; margin-left:0; margin-top:8px; justify-content:flex-end} }
+  @media (max-width:700px){
+    .user-row{margin-left:0}
+    .user-row #presenceList{display:none}
+    .presence-mobile-slot{display:flex}
+  }
 
   .tabs{max-width:1180px; margin:0 auto; padding:10px 16px 12px; display:flex; gap:6px; flex-wrap:wrap}
   .tabs button{position:relative; border:1px solid var(--line); background:var(--panel); color:var(--ink-soft); padding:8px 14px; border-radius:999px; font-size:13px; font-weight:700; cursor:pointer; transition:background .12s ease, border-color .12s ease, box-shadow .12s ease, filter .1s ease, transform .08s ease}
@@ -228,9 +236,9 @@ window.PAMPH_FIREBASE_CONFIG = {
   .ios-switch{position:relative; display:inline-block; width:40px; height:24px; flex:none; vertical-align:middle; cursor:pointer}
   .ios-switch input{-webkit-appearance:none; appearance:none; position:absolute; inset:0; opacity:0; width:100%; height:100%; margin:0; padding:0; cursor:pointer; z-index:1}
   .ios-switch-track{position:absolute; inset:0; background:#dcdce1; border-radius:999px; transition:background .18s ease; cursor:pointer}
-  .ios-switch-track::before{content:""; position:absolute; left:2px; top:2px; width:20px; height:20px; background:#fff; border-radius:50%; box-shadow:0 1px 3px rgba(0,0,0,.35); transition:transform .18s ease}
+  .ios-switch-track::before{content:""; position:absolute; left:2px; top:50%; transform:translateY(-50%); width:20px; height:20px; background:#fff; border-radius:50%; box-shadow:0 1px 3px rgba(0,0,0,.35); transition:transform .18s ease}
   .ios-switch input:checked + .ios-switch-track{background:#34c759}
-  .ios-switch input:checked + .ios-switch-track::before{transform:translateX(16px)}
+  .ios-switch input:checked + .ios-switch-track::before{transform:translateY(-50%) translateX(16px)}
   .brand-picker{position:relative; display:inline-flex; flex:none}
   .brand-sel{flex:none; width:30px; height:30px; border-radius:50%; border:2px solid var(--line-strong); padding:0; cursor:pointer; transition:box-shadow .12s ease, border-color .12s ease}
   .brand-sel:hover{border-color:#F39800; box-shadow:0 0 8px color-mix(in srgb, #F39800 55%, transparent)}
@@ -403,6 +411,7 @@ window.PAMPH_FIREBASE_CONFIG = {
     <div class="badges" id="hdrBadges"></div>
     <div class="mode" id="modeTag">…</div>
     <span class="theme-switch" title="表示モードを切り替え"><input type="checkbox" id="themeToggle"><span class="theme-switch-track"></span></span>
+    <span id="presenceMobileSlot" class="presence-mobile-slot"></span>
   </div>
   <nav class="tabs" id="tabs">
     <button data-tab="order"     aria-selected="true">発注</button>
@@ -902,6 +911,14 @@ function stopPresenceHeartbeat(){
   if(presenceTimer){ clearInterval(presenceTimer); presenceTimer=null; }
   if(presenceId){ const pid=presenceId; presenceId=null; try{ store.remove("presence", pid); }catch(e){} }
 }
+let presenceExpanded = false;
+const presenceMobileMQ = window.matchMedia ? window.matchMedia("(max-width:700px)") : null;
+function presenceDotHtml(p){
+  const surname = p.name.split(/[\s　]+/)[0];
+  const shown = surname.length>2 ? surname.slice(0,2) : surname;
+  const c = p.color;
+  return '<span class="presence-dot" style="background:color-mix(in srgb, '+esc(c)+' 30%, transparent);border-color:'+esc(c)+';color:'+textForColor(c)+'" title="'+esc(p.name)+'さんが閲覧中">'+esc(shown)+'</span>';
+}
 function renderPresence(){
   const el = $("#presenceList"); if(!el) return;
   const cutoff = Date.now() - PRESENCE_STALE_MS;
@@ -913,12 +930,58 @@ function renderPresence(){
   const seen = {};
   const uniq = [];
   others.forEach(p=>{ const nm=(p.name||"").trim(); if(nm && !seen[nm]){ seen[nm]=true; uniq.push({name:nm, color:p.color||DEFAULT_DISPLAY_COLOR}); } });
-  el.innerHTML = uniq.slice(0,8).map(p=>{
-    const surname = p.name.split(/[\s　]+/)[0];
-    const shown = surname.length>2 ? surname.slice(0,2) : surname;
+  const isMobile = presenceMobileMQ ? presenceMobileMQ.matches : false;
+  if(!isMobile){
+    presenceExpanded = false;
+    el.innerHTML = uniq.slice(0,8).map(presenceDotHtml).join("");
+    return;
+  }
+  el.innerHTML = uniq.map(presenceDotHtml).join("");
+  requestAnimationFrame(()=> fitPresenceDotsMobile(uniq));
+}
+function fitPresenceDotsMobile(uniq){
+  const el = $("#presenceList"); if(!el || !uniq.length){ closePresencePop(); return; }
+  closePresencePop();
+  if(el.scrollWidth <= el.clientWidth + 1){
+    presenceExpanded = false; // 全部そのまま収まる場合は展開状態も不要
+    return;
+  }
+  const dotEl = el.querySelector(".presence-dot");
+  const dotW = dotEl ? dotEl.getBoundingClientRect().width : 35;
+  const gap = 6;
+  const avail = el.clientWidth - dotW - gap; // 「+」ボタン1個分の余白を確保
+  let fitCount = Math.max(0, Math.floor((avail + gap) / (dotW + gap)));
+  fitCount = Math.min(fitCount, uniq.length - 1);
+  const hiddenCount = uniq.length - fitCount;
+  const shown = fitCount>0 ? uniq.slice(uniq.length-fitCount) : [];
+  let html = '<button type="button" class="presence-dot presence-more" data-act="presence-toggle" title="他'+hiddenCount+'人が閲覧中">+'+hiddenCount+'</button>';
+  html += shown.map(presenceDotHtml).join("");
+  el.innerHTML = html;
+  if(presenceExpanded) renderPresencePop(uniq);
+}
+function renderPresencePop(uniq){
+  const el = $("#presenceList"); if(!el) return;
+  closePresencePop();
+  const pop = document.createElement("div");
+  pop.className = "presence-pop";
+  pop.id = "presencePop";
+  pop.innerHTML = uniq.map(p=>{
     const c = p.color;
-    return '<span class="presence-dot" style="background:color-mix(in srgb, '+esc(c)+' 30%, transparent);border-color:'+esc(c)+';color:'+textForColor(c)+'" title="'+esc(p.name)+'さんが閲覧中">'+esc(shown)+'</span>';
+    return '<div class="presence-pop-row"><span class="presence-dot" style="background:color-mix(in srgb, '+esc(c)+' 30%, transparent);border-color:'+esc(c)+';color:'+textForColor(c)+'">'+esc(p.name.split(/[\s　]+/)[0].length>2 ? p.name.split(/[\s　]+/)[0].slice(0,2) : p.name.split(/[\s　]+/)[0])+'</span><span>'+esc(p.name)+'さん</span></div>';
   }).join("");
+  el.appendChild(pop);
+}
+function closePresencePop(){
+  const pop = document.getElementById("presencePop");
+  if(pop) pop.remove();
+}
+function placePresenceList(){
+  const el = $("#presenceList"), mobileSlot = $("#presenceMobileSlot"), userRow = document.querySelector(".user-row");
+  if(!el) return;
+  const isMobile = presenceMobileMQ ? presenceMobileMQ.matches : false;
+  if(isMobile && mobileSlot && el.parentElement !== mobileSlot){ mobileSlot.appendChild(el); }
+  else if(!isMobile && userRow && el.parentElement !== userRow){ userRow.insertBefore(el, userRow.firstChild); }
+  renderPresence();
 }
 function cfg(){
   const c = DB.config.app || {};
@@ -1170,6 +1233,16 @@ function boot(){
   if(getDisplayName()) startPresenceHeartbeat();
   window.addEventListener("beforeunload", stopPresenceHeartbeat);
   window.addEventListener("pagehide", stopPresenceHeartbeat);
+  placePresenceList();
+  if(presenceMobileMQ) presenceMobileMQ.addEventListener("change", placePresenceList);
+  window.addEventListener("resize", debounce(renderPresence, 150));
+  const presenceListEl0 = $("#presenceList");
+  if(presenceListEl0) presenceListEl0.addEventListener("click", e=>{
+    if(e.target.closest(".presence-pop")) return;
+    const b = e.target.closest('[data-act="presence-toggle"]'); if(!b) return;
+    presenceExpanded = !presenceExpanded;
+    renderPresence();
+  });
 
   const chatFab = $("#chatFab"), chatPanel = $("#chatPanel"), chatClose = $("#chatClose"),
         chatInput = $("#chatInput"), chatSend = $("#chatSend"),
@@ -1261,8 +1334,10 @@ function boot(){
     setTimeout(function(){ pushChatMsg("bot", ans); }, 200);
   }
   let chatFitTimer = null;
+  const chatMobileMQ = window.matchMedia ? window.matchMedia("(max-width:700px)") : null;
   function syncChatPanelHeight(){
-    if(!chatPanel || window.innerWidth > 700) { if(chatPanel){ chatPanel.style.height = ""; chatPanel.style.top = ""; } return; }
+    const isMobile = chatMobileMQ ? chatMobileMQ.matches : (window.innerWidth <= 700);
+    if(!chatPanel || !isMobile) { if(chatPanel){ chatPanel.style.height = ""; chatPanel.style.top = ""; } return; }
     if(chatPanel.classList.contains("hide")) return;
     if(window.visualViewport){
       const h = Math.round(window.visualViewport.height) + "px";
@@ -1292,7 +1367,7 @@ function boot(){
         }
         syncChatPanelHeight();
         startChatFitPolling();
-        if(chatInput && window.innerWidth > 700) chatInput.focus();
+        if(chatInput && !(chatMobileMQ ? chatMobileMQ.matches : false)) chatInput.focus();
       } else {
         stopChatFitPolling();
       }
@@ -1307,6 +1382,7 @@ function boot(){
   }
   document.addEventListener("click", e=>{
     if(UI.brandPickerOpenId!==null && !e.target.closest(".brand-picker")){ UI.brandPickerOpenId = null; renderAll(); }
+    if(presenceExpanded && !e.target.closest("#presenceList")){ presenceExpanded = false; renderPresence(); }
     const calInput = e.target.closest('input[type="month"][readonly], input[type="date"][readonly]');
     if(calInput){ openCalPicker(calInput); }
     if(chatTmplList && !chatTmplList.classList.contains("hide") && !e.target.closest("#chatTmplList") && !e.target.closest("#chatTmplBtn")){
