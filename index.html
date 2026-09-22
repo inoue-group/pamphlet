@@ -74,9 +74,9 @@ window.PAMPH_FIREBASE_CONFIG = {
   .mode.cloud{color:var(--ok); border-color:color-mix(in srgb, var(--ok) 40%, var(--line))}
   .theme-switch{position:relative; display:inline-block; width:40px; height:24px; flex:none; vertical-align:middle; cursor:pointer}
   .theme-switch input{-webkit-appearance:none; appearance:none; position:absolute; inset:0; opacity:0; width:100%; height:100%; margin:0; padding:0; cursor:pointer; z-index:1}
-  .theme-switch-track{position:absolute; inset:0; background:#dcdce1; border-radius:999px; transition:background .18s ease; cursor:pointer}
+  .theme-switch-track{position:absolute; inset:0; background:#dcdce1; border:1px solid var(--line-strong); border-radius:999px; transition:background .18s ease, border-color .18s ease; cursor:pointer}
   .theme-switch-track::before{content:""; position:absolute; left:2px; top:2px; width:20px; height:20px; background:#fff; border-radius:50%; box-shadow:0 1px 3px rgba(0,0,0,.35); transition:transform .18s ease}
-  .theme-switch input:checked + .theme-switch-track{background:#1f2937}
+  .theme-switch input:checked + .theme-switch-track{background:#1f2937; border-color:rgba(255,255,255,.35)}
   .theme-switch input:checked + .theme-switch-track::before{transform:translateX(16px)}
   .badges{display:flex; gap:8px; flex-wrap:wrap}
   .badge{font-size:11px; font-weight:700; padding:5px 10px; border-radius:999px; background:var(--chip); color:var(--ink-soft)}
@@ -97,6 +97,7 @@ window.PAMPH_FIREBASE_CONFIG = {
   .tabs button[aria-selected="true"]{background:#F39800; border-color:#F39800; color:#fff}
   .tabs button[aria-selected="true"]:hover{background:#F39800; filter:brightness(1.1); box-shadow:0 0 8px color-mix(in srgb, #F39800 55%, transparent)}
   .tab-badge{position:absolute; top:-5px; right:-5px; min-width:17px; height:17px; padding:0 4px; border-radius:999px; background:var(--danger); color:#fff; font-size:10px; line-height:17px; text-align:center; font-weight:700; box-shadow:0 0 0 2px var(--panel)}
+  .lsh-badge{position:absolute; top:-5px; left:-5px; width:10px; height:10px; border-radius:50%; background:var(--danger); box-shadow:0 0 0 2px var(--panel)}
 
   main{max-width:1180px; margin:0 auto; padding:16px}
   .banner{position:fixed; top:12px; left:50%; transform:translateX(-50%); z-index:15; width:calc(100% - 32px); max-width:640px; padding:10px 14px; border-radius:12px; font-size:13px;
@@ -118,6 +119,7 @@ window.PAMPH_FIREBASE_CONFIG = {
   .fld label{font-size:11px; font-weight:700; color:var(--ink-soft)}
   input,select,textarea{font-family:inherit; font-size:16px; color:var(--ink); background:var(--panel-2); border:1px solid var(--line-strong); border-radius:10px; padding:8px 10px}
   select, input[type="date"], input[type="month"], input[type="color"], input[type="checkbox"], input[type="radio"]{cursor:pointer}
+  input:disabled, select:disabled, textarea:disabled{opacity:.4; cursor:not-allowed}
   /* 印刷発注の状態プルダウン：閉じているときは状態の色、開いた選択肢は白地に読みやすく＋オレンジでハイライト */
   .po-status-select option{background:#fff; color:#111827}
   .po-status-select option:checked{background:#F39800; color:#fff}
@@ -130,8 +132,8 @@ window.PAMPH_FIREBASE_CONFIG = {
   input[type=color]::-moz-color-swatch{border:none; border-radius:9px}
   input[type=checkbox]{width:16px;height:16px}
 
-  .btn{border:1px solid var(--line-strong); background:var(--panel-2); color:var(--ink); font-weight:700; font-size:13px; padding:8px 14px; border-radius:10px; cursor:pointer; transition:transform .08s ease, filter .1s ease, box-shadow .1s ease}
-  .btn:hover{border-color:var(--accent)}
+  .btn{border:1px solid var(--line-strong); background:var(--panel-2); color:var(--ink); font-weight:700; font-size:13px; padding:8px 14px; border-radius:10px; cursor:pointer; transition:transform .08s ease, filter .1s ease, box-shadow .1s ease, background .12s ease, border-color .12s ease}
+  .btn:hover{background:color-mix(in srgb, #F39800 14%, var(--panel-2)); border-color:#F39800; box-shadow:0 0 8px color-mix(in srgb, #F39800 45%, transparent)}
   .btn:active{transform:translateY(1px) scale(.97)}
   .btn.primary{background:var(--accent); border-color:var(--accent); color:#fff}
   .btn.primary:hover{filter:brightness(1.1); box-shadow:0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent)}
@@ -155,12 +157,12 @@ window.PAMPH_FIREBASE_CONFIG = {
   .notice-date{display:inline-block; font-size:11px; font-weight:700; color:var(--ink-soft); margin-right:8px}
   .brand-legend{padding:5px 10px; background:var(--panel-2); border:1px solid var(--line); border-radius:9px; font-size:11px; white-space:nowrap}
   .brand-legend ul{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:1px}
-  .brand-legend li{display:flex; align-items:center; gap:5px}
+  .brand-legend li{display:flex; align-items:center; justify-content:flex-start; gap:5px}
   .lg-dot{width:10px; height:10px; border-radius:50%; flex:none; border:1px solid rgba(0,0,0,.25); box-shadow:0 0 0 2px rgba(255,255,255,.8)}
   .thumb{width:100%; aspect-ratio:3/4; border-radius:8px; background:var(--chip); object-fit:contain; display:block}
   .thumb.ph{display:grid; place-items:center; color:var(--ink-soft); font-size:11px; text-align:center; padding:6px}
   .thumb-btn{display:block; width:100%; border:0; padding:0; margin:0; background:none; cursor:pointer}
-  .thumb-btn:hover .thumb{outline:2px solid var(--accent); outline-offset:1px}
+  .thumb-btn:hover .thumb{outline:2px solid #F39800; outline-offset:1px; box-shadow:0 0 8px color-mix(in srgb, #F39800 55%, transparent)}
   .stock-row{display:flex; align-items:center; gap:6px; justify-content:center; flex-wrap:wrap}
   .stock-row input{width:92px; text-align:center; font-weight:700}
   .card .nm{font-size:12px; font-weight:700; line-height:1.35; min-height:2.7em}
@@ -179,7 +181,7 @@ window.PAMPH_FIREBASE_CONFIG = {
   tfoot td{border-top:2px solid var(--line-strong); font-weight:700}
   .mini{width:34px; aspect-ratio:3/4; border-radius:4px; object-fit:contain; background:var(--chip); display:inline-block; vertical-align:middle; margin-right:8px}
   .mini-btn{display:inline-flex; border:0; padding:0; margin:0; background:none; cursor:pointer; flex:none}
-  .mini-btn:hover .mini{outline:2px solid var(--accent); outline-offset:1px}
+  .mini-btn:hover .mini{outline:2px solid #F39800; outline-offset:1px; box-shadow:0 0 8px color-mix(in srgb, #F39800 55%, transparent)}
   .name-cell{display:flex; align-items:center; gap:2px; min-width:190px}
 
   .pill{display:inline-block; font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px; color:#fff}
@@ -189,9 +191,12 @@ window.PAMPH_FIREBASE_CONFIG = {
   .rowline{display:flex; gap:8px; align-items:center; padding:8px 0; border-bottom:1px dashed var(--line); flex-wrap:wrap}
   .type-rows-wrap{overflow-x:auto; padding-bottom:4px}
   .rowline.nowrap{flex-wrap:nowrap; min-width:max-content}
-  .rowline.nowrap input.grow{flex:2 1 170px; width:auto; min-width:170px; max-width:420px}
+  .rowline.nowrap input.grow{flex:2 1 170px; width:auto; min-width:170px; max-width:390px}
   .rowline.nowrap input.grow.alias{flex:1 1 110px; width:auto; min-width:110px; max-width:220px}
   .rowline.nowrap select.cat-sel{flex:none; width:118px}
+  @media (min-width:700px){
+    .rowline.nowrap input.grow, .rowline.nowrap select.cat-sel{ font-size:14px }
+  }
   .drag-handle{flex:none; cursor:grab; font-size:18px; color:var(--ink-soft); padding:0 4px; user-select:none}
   .drag-handle:active{cursor:grabbing}
   .rowline.nowrap{position:relative}
@@ -211,7 +216,8 @@ window.PAMPH_FIREBASE_CONFIG = {
   .ccard .cimg.ph{display:grid; place-items:center; color:var(--ink-soft); font-size:11px}
   .ccard .ctitle{font-size:13px; font-weight:700; line-height:1.35}
   .ccard .cact{display:flex; gap:8px; margin-top:auto}
-  .swatch{width:30px; height:30px; border-radius:8px; border:2px solid var(--line-strong); cursor:pointer; padding:0}
+  .swatch{width:30px; height:30px; border-radius:8px; border:2px solid var(--line-strong); cursor:pointer; padding:0; transition:box-shadow .12s ease, border-color .12s ease}
+  .swatch:hover{border-color:#F39800; box-shadow:0 0 8px color-mix(in srgb, #F39800 55%, transparent)}
   .ios-switch{position:relative; display:inline-block; width:40px; height:24px; flex:none; vertical-align:middle; cursor:pointer}
   .ios-switch input{-webkit-appearance:none; appearance:none; position:absolute; inset:0; opacity:0; width:100%; height:100%; margin:0; padding:0; cursor:pointer; z-index:1}
   .ios-switch-track{position:absolute; inset:0; background:#dcdce1; border-radius:999px; transition:background .18s ease; cursor:pointer}
@@ -219,10 +225,12 @@ window.PAMPH_FIREBASE_CONFIG = {
   .ios-switch input:checked + .ios-switch-track{background:#34c759}
   .ios-switch input:checked + .ios-switch-track::before{transform:translateX(16px)}
   .brand-picker{position:relative; display:inline-flex; flex:none}
-  .brand-sel{flex:none; width:30px; height:30px; border-radius:50%; border:2px solid var(--line-strong); padding:0; cursor:pointer}
+  .brand-sel{flex:none; width:30px; height:30px; border-radius:50%; border:2px solid var(--line-strong); padding:0; cursor:pointer; transition:box-shadow .12s ease, border-color .12s ease}
+  .brand-sel:hover{border-color:#F39800; box-shadow:0 0 8px color-mix(in srgb, #F39800 55%, transparent)}
   .brand-picker-pop{position:absolute; top:36px; left:0; z-index:30; display:flex; gap:6px; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:6px; box-shadow:var(--shadow)}
-  .brand-pick-dot{width:26px; height:26px; border-radius:50%; border:2px solid var(--line-strong); padding:0; cursor:pointer}
+  .brand-pick-dot{width:26px; height:26px; border-radius:50%; border:2px solid var(--line-strong); padding:0; cursor:pointer; transition:box-shadow .12s ease, border-color .12s ease}
   .brand-pick-dot.on{box-shadow:0 0 0 2px var(--accent)}
+  .brand-pick-dot:hover{border-color:#F39800; box-shadow:0 0 8px color-mix(in srgb, #F39800 55%, transparent)}
   .cal-pop{position:fixed; z-index:90; width:270px; background:var(--panel); border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow); padding:14px}
   .cal-hd{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px}
   .cal-hd b{font-size:15px}
@@ -244,11 +252,12 @@ window.PAMPH_FIREBASE_CONFIG = {
   .cal-d.sel:hover{filter:brightness(1.08)}
   .cal-d.today{box-shadow:inset 0 0 0 1.5px #F39800}
   .swatch.on{outline:3px solid color-mix(in srgb,var(--accent) 55%,transparent); outline-offset:1px; border-color:var(--ink)}
-  .dotbtn{width:30px;height:30px;border-radius:999px;border:2px solid var(--line-strong);cursor:pointer;padding:0}
+  .dotbtn{width:30px;height:30px;border-radius:999px;border:2px solid var(--line-strong);cursor:pointer;padding:0; transition:box-shadow .12s ease, border-color .12s ease}
+  .dotbtn:hover{border-color:#F39800; box-shadow:0 0 8px color-mix(in srgb, #F39800 55%, transparent)}
   .dotbtn.on{outline:3px solid color-mix(in srgb,var(--accent) 55%,transparent); outline-offset:1px}
   .preset-colors{display:inline-flex; gap:5px; flex-wrap:wrap; align-items:center; vertical-align:middle; margin-left:8px}
-  .preset-dot{width:20px; height:20px; border-radius:50%; border:1px solid var(--line-strong); cursor:pointer; padding:0; flex:none}
-  .preset-dot:hover{transform:scale(1.15)}
+  .preset-dot{width:20px; height:20px; border-radius:50%; border:1px solid var(--line-strong); cursor:pointer; padding:0; flex:none; transition:transform .12s ease, box-shadow .12s ease}
+  .preset-dot:hover{transform:scale(1.15); box-shadow:0 0 8px color-mix(in srgb, #F39800 55%, transparent)}
 
   /* 提出済みタブ */
   .sub-row{display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:10px 12px; border:1px solid var(--line); border-radius:10px; margin-bottom:8px; background:var(--panel-2)}
@@ -302,7 +311,9 @@ window.PAMPH_FIREBASE_CONFIG = {
   .boot-kanji{ position:relative; width:min(94vw,760px); height:clamp(48px,11vw,100px) }
   .boot-kanji-dim, .boot-kanji-fill{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:clamp(36px,8.4vw,76px); font-weight:600; letter-spacing:.015em; line-height:1; font-family:"Oswald","Bahnschrift SemiBold","Bahnschrift","Segoe UI","Helvetica Neue",Arial,sans-serif; user-select:none; white-space:nowrap }
   .boot-kanji-dim{ color:rgba(255,255,255,.14) }
-  .boot-kanji-fill{ background:linear-gradient(0deg,#F39800 0%,#FF7A45 45%,#FF4FA3 100%); -webkit-background-clip:text; background-clip:text; color:transparent; -webkit-text-fill-color:transparent; clip-path:inset(100% 0 0 0); animation:bootFill 3.3s ease-out forwards }
+  .boot-title-row{ display:inline-flex; align-items:flex-end }
+  .boot-hd{ font-size:.5em }
+  .boot-kanji-fill{ background:linear-gradient(0deg,#F39800 0%,#F5622A 45%,#FF4FA3 100%); -webkit-background-clip:text; background-clip:text; color:transparent; -webkit-text-fill-color:transparent; clip-path:inset(100% 0 0 0); animation:bootFill 3.3s ease-out forwards }
   @keyframes bootFill{ from{ clip-path:inset(100% 0 0 0) } to{ clip-path:inset(0% 0 0 0) } }
 
   /* 検索チャット */
@@ -316,11 +327,21 @@ window.PAMPH_FIREBASE_CONFIG = {
   .chat-msgs{ flex:1; overflow:auto; padding:10px 12px; display:flex; flex-direction:column; gap:8px; font-size:13px; line-height:1.6 }
   .chat-msg{ max-width:88%; padding:8px 10px; border-radius:10px; word-break:break-word }
   .chat-msg.bot{ background:var(--chip); align-self:flex-start }
+  .chat-msg:has(.stock-input-form){ max-width:100% }
+  .stock-input-form .rowline{ padding:6px 0 }
+  .stock-input-form .short{ width:80px }
   .chat-msg.user{ background:#F39800; color:#fff; align-self:flex-end }
   .chat-msg a{ color:inherit; text-decoration:underline }
   .chat-input-row{ display:flex; gap:6px; padding:10px; border-top:1px solid var(--line) }
   .chat-input-row .btn.primary{ background:#F39800; border-color:#F39800 }
   .chat-input-row input{ flex:1; min-width:0 }
+  .chat-tmpl-btn{ flex:none; width:24px; height:24px; border-radius:50%; border:1.5px solid var(--ink-soft); background:transparent; font-size:13px; font-weight:700; line-height:1; cursor:pointer; color:var(--ink-soft); display:flex; align-items:center; justify-content:center; padding:0 }
+  .chat-tmpl-btn:hover{ border-color:#F39800; color:#F39800; box-shadow:0 0 8px color-mix(in srgb, #F39800 45%, transparent) }
+  .chat-tmpl-list{ display:flex; flex-wrap:wrap; gap:6px; padding:10px 12px; border-bottom:1px solid var(--line); max-height:150px; overflow:auto }
+  .chat-tmpl-list.hide{ display:none }
+  .chat-chip{ border:1px solid var(--line-strong); background:var(--panel-2); color:var(--ink); font-size:12px; padding:6px 10px; border-radius:999px; cursor:pointer; transition:background .12s ease, border-color .12s ease, box-shadow .12s ease }
+  .chat-chip:hover{ background:color-mix(in srgb, #F39800 14%, var(--panel-2)); border-color:#F39800; box-shadow:0 0 6px color-mix(in srgb, #F39800 40%, transparent) }
+  .chat-choice-row{ display:flex; flex-wrap:wrap; gap:6px; margin-top:8px }
   @media (max-width:480px){ .chat-fab{ right:14px; bottom:14px } }
   @media (max-width:700px){
     .chat-panel{ right:0; left:0; top:0; bottom:0; width:auto; height:auto; max-width:100%; max-height:100%; border-radius:0; border:0 }
@@ -335,7 +356,8 @@ window.PAMPH_FIREBASE_CONFIG = {
   .modal-card.wide{ max-width:900px }
   .modal-head{ padding:14px 18px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; gap:10px }
   .modal-head b{ font-size:15px }
-  .modal-x{ background:transparent; border:0; color:var(--ink-soft); font-size:20px; line-height:1; cursor:pointer; padding:0 4px }
+  .modal-x{ background:transparent; border:0; color:var(--ink-soft); font-size:20px; line-height:1; cursor:pointer; padding:0 4px; border-radius:6px; transition:color .12s ease, background .12s ease }
+  .modal-x:hover{ color:#F39800; background:color-mix(in srgb, #F39800 14%, transparent) }
   .modal-body{ padding:16px 20px; overflow:auto; font-size:14px; line-height:1.85 }
   .modal-body h4{ margin:16px 0 4px; font-size:13.5px; color:var(--accent-ink); border-left:4px solid var(--accent); padding-left:7px }
   .modal-body h4:first-child{ margin-top:0 }
@@ -369,7 +391,7 @@ window.PAMPH_FIREBASE_CONFIG = {
   <div class="appbar-in">
     <div class="brand" id="brandTitle" title="クリックでオープニングアニメーションを再生">
       <img class="mk" src="data:image/jpeg;base64,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" alt="IRODORI HOUSE" />
-      <div><b>パンフレット発注管理</b><span>INOUE-GROUP</span></div>
+      <div><b>パンフレット発注管理</b><span>INOUE GROUP HOLDINGS</span></div>
     </div>
     <div class="badges" id="hdrBadges"></div>
     <div class="mode" id="modeTag">…</div>
@@ -400,8 +422,8 @@ window.PAMPH_FIREBASE_CONFIG = {
 <div id="bootSplash" class="boot-splash" aria-hidden="true">
   <div class="boot-stack">
     <div class="boot-kanji">
-      <span class="boot-kanji-dim">INOUE GROUP</span>
-      <span class="boot-kanji-fill">INOUE GROUP</span>
+      <span class="boot-kanji-dim"><span class="boot-title-row"><span>INOUE GROUP</span><span class="boot-hd">HD</span></span></span>
+      <span class="boot-kanji-fill"><span class="boot-title-row"><span>INOUE GROUP</span><span class="boot-hd">HD</span></span></span>
     </div>
     <div class="boot-sub">Pamphlet Order Management App</div>
   </div>
@@ -413,7 +435,8 @@ window.PAMPH_FIREBASE_CONFIG = {
   </svg>
 </button>
 <div id="chatPanel" class="chat-panel hide">
-  <div class="chat-head"><b>🔎 検索チャット</b><button type="button" class="modal-x" id="chatClose" aria-label="閉じる">×</button></div>
+  <div class="chat-head"><b>検索チャット</b><span style="display:flex;gap:4px;align-items:center"><button type="button" class="chat-tmpl-btn" id="chatTmplBtn" title="よくある質問の例を見る">?</button><button type="button" class="modal-x" id="chatClose" aria-label="閉じる">×</button></span></div>
+  <div class="chat-tmpl-list hide" id="chatTmplList"></div>
   <div class="chat-msgs" id="chatMsgs"></div>
   <div class="chat-input-row">
     <input type="text" id="chatInput" placeholder="例）在庫は？／発注推移／準備済みとは">
@@ -443,6 +466,11 @@ function fmtDT(iso){
   return d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate())+" "+pad2(d.getHours())+":"+pad2(d.getMinutes());
 }
 function monthsAgo(n){ const d=new Date(); d.setDate(1); d.setMonth(d.getMonth()-n); return d.getFullYear()+"-"+pad2(d.getMonth()+1); }
+function monthDiff(a,b){
+  const pa = String(a||"").split("-").map(Number), pb = String(b||"").split("-").map(Number);
+  if(!pa[0]||!pa[1]||!pb[0]||!pb[1]) return 0;
+  return (pb[0]-pa[0])*12 + (pb[1]-pa[1]);
+}
 function monthRange(from,to){
   const out=[]; let a=from.split("-").map(Number), b=to.split("-").map(Number), y=a[0], m=a[1], g=0;
   if(!y||!m||!b[0]||!b[1]) return [todayMonth()];
@@ -620,9 +648,9 @@ function deepMerge(a,b){
 
 /* ---------- state ---------- */
 const store = makeStore();
-const DB = { stores:{}, pamphletTypes:{}, orderSheets:{}, printOrders:{}, config:{}, catalogs:{}, announcements:{}, feedback:{}, stockLogs:{}, presence:{} };
-const COLLS = ["stores","pamphletTypes","orderSheets","printOrders","config","catalogs","announcements","feedback","stockLogs","presence"];
-const DUMP_COLLS = ["stores","pamphletTypes","config","orderSheets","printOrders","catalogs","announcements","feedback","stockLogs"];
+const DB = { stores:{}, pamphletTypes:{}, orderSheets:{}, printOrders:{}, config:{}, catalogs:{}, announcements:{}, feedback:{}, stockLogs:{}, presence:{}, stockReports:{} };
+const COLLS = ["stores","pamphletTypes","orderSheets","printOrders","config","catalogs","announcements","feedback","stockLogs","presence","stockReports"];
+const DUMP_COLLS = ["stores","pamphletTypes","config","orderSheets","printOrders","catalogs","announcements","feedback","stockLogs","stockReports"];
 
 const UI = {
   tab:"order",
@@ -784,6 +812,8 @@ function positionCalPop(inputEl){
 
 function getDisplayName(){ try{ return localStorage.getItem("pamph_display_name")||""; }catch(e){ return ""; } }
 function getDisplayColor(){ try{ return localStorage.getItem("pamph_display_color")||DEFAULT_DISPLAY_COLOR; }catch(e){ return DEFAULT_DISPLAY_COLOR; } }
+function getDisplayRole(){ try{ return localStorage.getItem("pamph_display_role")||"staff"; }catch(e){ return "staff"; } }
+function setDisplayRole(role){ try{ localStorage.setItem("pamph_display_role", role==="admin"?"admin":"staff"); }catch(e){} }
 function setDisplayName(v, color){
   try{ localStorage.setItem("pamph_display_name", (v||"").trim()); }catch(e){}
   if(color){ try{ localStorage.setItem("pamph_display_color", color); }catch(e){} }
@@ -816,8 +846,15 @@ function renderUserBadge(){
   }
 }
 function promptDisplayName(forced){
+  const role = getDisplayRole();
   openModal("利用者名の設定",
     '<div class="fld"><label>お名前</label><input type="text" id="dispname-input" data-fk="dispname-input" value="'+esc(getDisplayName())+'" placeholder="例）鈴木"></div>'+
+    '<div class="fld" style="margin-top:10px"><label>区分</label>'+
+      '<div style="display:flex;gap:16px;align-items:center">'+
+        '<label style="display:flex;gap:6px;align-items:center;font-weight:400;cursor:pointer"><input type="radio" name="disprole" id="disprole-staff" value="staff" '+(role!=="admin"?"checked":"")+'> 各店舗担当者</label>'+
+        '<label style="display:flex;gap:6px;align-items:center;font-weight:400;cursor:pointer"><input type="radio" name="disprole" id="disprole-admin" value="admin" '+(role==="admin"?"checked":"")+'> 管理者</label>'+
+      '</div>'+
+    '</div>'+
     '<div class="fld" style="margin-top:10px"><label>アイコンの色</label>'+
       '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+
         '<input type="color" id="dispcolor-input" data-fk="dispcolor-input" value="'+esc(getDisplayColor())+'">'+
@@ -1056,6 +1093,7 @@ function boot(){
     $$("#tabs button").forEach(x=> x.setAttribute("aria-selected", x===b ? "true":"false"));
     renderAll();
     maybeAutoTour(UI.tab);
+    if(UI.tab==="stock") maybeShowLowStockAlert();
   });
 
   const v = $("#view");
@@ -1127,14 +1165,92 @@ function boot(){
   window.addEventListener("pagehide", stopPresenceHeartbeat);
 
   const chatFab = $("#chatFab"), chatPanel = $("#chatPanel"), chatClose = $("#chatClose"),
-        chatInput = $("#chatInput"), chatSend = $("#chatSend");
+        chatInput = $("#chatInput"), chatSend = $("#chatSend"),
+        chatTmplBtn = $("#chatTmplBtn"), chatTmplList = $("#chatTmplList");
   let chatBooted = false;
+  if(chatTmplList){
+    chatTmplList.innerHTML = CHAT_TEMPLATES.map(function(q){ return '<button type="button" class="chat-chip" data-q="'+esc(q)+'">'+esc(q)+'</button>'; }).join("");
+  }
+  if(chatTmplBtn && chatTmplList){
+    chatTmplBtn.addEventListener("click", ()=> chatTmplList.classList.toggle("hide"));
+  }
+  if(chatTmplList){
+    chatTmplList.addEventListener("click", e=>{
+      const b = e.target.closest(".chat-chip"); if(!b) return;
+      chatInput.value = b.dataset.q;
+      chatTmplList.classList.add("hide");
+      sendChat();
+    });
+  }
+  const chatMsgsEl = $("#chatMsgs");
+  if(chatMsgsEl){
+    chatMsgsEl.addEventListener("click", e=>{
+      const fb = e.target.closest("[data-faq-choice]");
+      if(fb){
+        const idx = +fb.dataset.faqChoice;
+        const choices = pendingFaqChoices;
+        pendingFaqChoices = null;
+        if(!choices || !choices[idx]) return;
+        pushChatMsg("user", esc(faqLabel(choices[idx])));
+        setTimeout(function(){ pushChatMsg("bot", choices[idx].a); }, 150);
+        return;
+      }
+      const sb = e.target.closest("[data-stock-choice]");
+      if(sb){
+        const idx = +sb.dataset.stockChoice;
+        const pending = pendingStockChoice;
+        pendingStockChoice = null;
+        if(!pending || !pending.types[idx]) return;
+        const t = pending.types[idx];
+        pushChatMsg("user", esc(t.name));
+        setTimeout(function(){ pushChatMsg("bot", estimateStockText({id:pending.storeId, name:pending.storeName}, t)); }, 150);
+        return;
+      }
+      const sic = e.target.closest("[data-store-input-choice]");
+      if(sic){
+        const idx = +sic.dataset.storeInputChoice;
+        const pending = pendingStoreForStockInput;
+        pendingStoreForStockInput = null;
+        if(!pending || !pending[idx]) return;
+        const s = pending[idx];
+        pushChatMsg("user", esc(s.name));
+        setTimeout(function(){ pushChatMsg("bot", stockInputFormHtml(s.id)); }, 150);
+        return;
+      }
+      const sif = e.target.closest('[data-act="sif-submit"]');
+      if(sif){
+        const storeId = sif.dataset.store;
+        const st = DB.stores[storeId] || {};
+        let count = 0;
+        activeTypes().forEach(function(t){
+          const inp = document.getElementById("sif-qty-"+t.id);
+          if(inp && inp.value.trim()!==""){
+            store.put("stockReports", uid(), {
+              storeId: storeId, storeName: st.name||"", typeId: t.id, typeName: t.name||"",
+              qty: num(inp.value), unit: "部", reportedAt: now(), reportedBy: getDisplayName()||""
+            });
+            count++;
+          }
+        });
+        const formEl = sif.closest(".stock-input-form");
+        if(formEl) formEl.outerHTML = '<div>'+(count>0 ? esc(count+"件の在庫状況を記録しました。ご協力ありがとうございます。") : "入力された数量がありませんでした。")+'</div>';
+        return;
+      }
+    });
+  }
   function sendChat(){
     const v = (chatInput.value||"").trim();
     if(!v) return;
     pushChatMsg("user", esc(v));
     chatInput.value = "";
     const ans = chatAnswer(v);
+    if(pendingStockReport){
+      const rep = pendingStockReport; pendingStockReport = null;
+      store.put("stockReports", uid(), {
+        storeId: rep.storeId, storeName: rep.storeName, typeId: rep.typeId, typeName: rep.typeName,
+        qty: rep.qty, unit: rep.unit, reportedAt: now(), reportedBy: getDisplayName()||""
+      });
+    }
     setTimeout(function(){ pushChatMsg("bot", ans); }, 200);
   }
   let chatFitTimer = null;
@@ -1186,6 +1302,9 @@ function boot(){
     if(UI.brandPickerOpenId!==null && !e.target.closest(".brand-picker")){ UI.brandPickerOpenId = null; renderAll(); }
     const calInput = e.target.closest('input[type="month"][readonly], input[type="date"][readonly]');
     if(calInput){ openCalPicker(calInput); }
+    if(chatTmplList && !chatTmplList.classList.contains("hide") && !e.target.closest("#chatTmplList") && !e.target.closest("#chatTmplBtn")){
+      chatTmplList.classList.add("hide");
+    }
   });
   document.addEventListener("keydown", e=>{
     const tourOpen = !$("#tour").classList.contains("hide");
@@ -1221,7 +1340,7 @@ function showBanner(msg,type){
   b.querySelector(".banner-msg").textContent = msg;
   positionBanner();
   if(bannerTimer){ clearTimeout(bannerTimer); bannerTimer = null; }
-  if(type !== "err") bannerTimer = setTimeout(hideBanner, 30000);
+  if(type !== "err") bannerTimer = setTimeout(hideBanner, 10000);
 }
 function hideBanner(){ if(bannerTimer){ clearTimeout(bannerTimer); bannerTimer = null; } const b=$("#banner"); if(b) b.className = "banner hide"; }
 window.addEventListener("resize", ()=>{ const b=$("#banner"); if(b && !b.classList.contains("hide")) positionBanner(); });
@@ -1254,7 +1373,7 @@ const TOURS = {
     { sel:null, title:"PC・スマホ対応", html:'<div class="big">PC・スマートフォンのどちらでも使えます。インストールやログインは不要です。</div>' },
     { sel:null, title:"ブックマーク推奨", html:'<div class="big">毎月使うので、このページを<b>ブラウザのブックマーク（お気に入り）に登録</b>しておくと便利です。</div>' },
     { sel:'#themeToggle', html:'<b>表示モードの切り替え</b><br>このスイッチで、明るい表示（ライトモード）と暗い表示（ダークモード）を切り替えられます。初期設定はライトモードです。切り替えた設定はこの端末に記憶されます。', optional:true },
-    { sel:'.notice-box', html:'<b>📢 お知らせ</b><br>担当者からの連絡（新しいパンフレットの案内など）がここに表示されます。出ているときは目を通してください。無いときは表示されません。', optional:true },
+    { sel:'.notice-box', html:'<b>お知らせ</b><br>担当者からの連絡（新しいパンフレットの案内など）がここに表示されます。出ているときは目を通してください。無いときは表示されません。', optional:true },
     { sel:'.brand-legend', html:'<b>ブランドの見分け方</b><br>表紙の左上に付いている丸の色で、パンフレットのブランドが分かります。<br>オレンジ＝彩ハウス、緑＝F.PRODUCTS（色が付いていないものは共通）。' },
     { sel:'[data-act="month"]', html:'<b>① 対象月</b><br>発注する月を選びます。通常はこのままでOK。過去の月を選ぶとその月の内容を確認・修正できます。' },
     { sel:'[data-act="store"]', html:'<b>② 店舗</b><br>自分の店舗を選びます。次回からは自動で表示されます。<br><span class="dim2">※いまは説明用に先頭の店舗が選ばれています。あとで自分の店舗に変えてください。</span>' },
@@ -1265,7 +1384,8 @@ const TOURS = {
     { sel:'[data-act="submit-none"]', html:'<b>今月は発注なし</b><br>その月に発注が無いときはこちらを押します。押さないと「未提出」の店舗として残ります。' },
     { sel:'[data-act="open-guide"]', html:'<b>使い方ガイド</b><br>分からなくなったら、いつでもここから説明とこのツアーを見られます。' },
     { sel:'#tabs button[data-tab="feedback"]', html:'<b>意見箱</b><br>このアプリやパンフレットについて、気づいたこと・ご要望があれば「意見箱」タブからお気軽にお寄せください。担当者に届きます。', optional:true },
-    { sel:'#chatPanel', html:'<b>🔎 検索チャット</b><br>画面右下のボタンから開けます。パンフレットの在庫・発注状況の確認や、使い方の質問ができます（例：「準備済みとは」「〇〇店の発注状況」）。AIとの会話ではなく、アプリ内のキーワード検索です。<br><span class="dim2">※いまは説明用のサンプルのやり取りを表示しています。</span>', optional:true, onEnter: openChatDemo, aboveForce:true },
+    { sel:'#chatPanel', html:'<b>検索チャット</b><br>画面右下のボタンから開けます。パンフレットの在庫・発注状況の確認や、使い方の質問ができます（例：「準備済みとは」「〇〇店の発注状況」）。AIとの会話ではなく、アプリ内のキーワード検索です。<br><span class="dim2">※いまは説明用のサンプルのやり取りを表示しています。</span>', optional:true, onEnter: openChatDemo, aboveForce:true },
+    { sel:'#chatPanel', guideOnly:true, html:'<b>在庫状況の申告・確認</b><br>検索チャットの「?」ボタンから「在庫状況を申告する」を選ぶと、パンフレット一覧と数量の入力欄が出て、分かるものだけ送信できます。「〇〇店の在庫状況は？」と聞けば、これまでの申告内容や発注間隔をもとにした目安も確認できます。', optional:true, onEnter: openChatDemo, aboveForce:true },
     { sel:null, title:"準備OK！", html:'<div class="big">説明は以上です。さっそく入力してみましょう。</div>', last:true }
   ],
   submitted: [
@@ -1310,9 +1430,12 @@ const GUIDES = {
     '<ol><li><b>月・店舗・担当者を選ぶ</b></li>'+
     '<li><b>数量を選ぶ</b>：表紙を見ながらプルダウンで。入れると赤字。「束」の種類は束数で。必要なものだけ。特記は「備考」へ</li>'+
     '<li><b>提出する</b>：「この内容で提出」／発注が無い月は「今月は発注なしで提出」</li></ol>'+
-    '<h4>お知らせ</h4><p>画面の一番上に「📢 お知らせ」が出たら読んでください。</p>'+
+    '<h4>お知らせ</h4><p>画面の一番上に「お知らせ」が出たら読んでください。</p>'+
     '<h4>提出したあとで直すとき</h4><p>同じ「対象月」「店舗」を選び直して数量を直し、もう一度「この内容で提出」。</p>'+
     '<h4>過去の発注数</h4><p>「履歴」タブで確認できます。</p>'+
+    '<h4>在庫状況の申告・確認</h4>'+
+    '<ul><li>右下の「検索チャット」を開き、「?」ボタンから「在庫状況を申告する」を選ぶと、パンフレット一覧と数量の入力欄が表示されます。分かるものだけ数量を入れて「送信」を押せば申告完了です</li>'+
+    '<li>「〇〇店の在庫状況は？」のように話しかけると、これまでの申告内容や発注間隔から在庫状況の目安を確認できます</li></ul>'+
     '<h4>困ったとき</h4><ul><li>画面がおかしい → 再読み込み（PCは F5、スマホは下へ引っ張る）</li>'+
     '<li>右上が「ローカル demo モード」→ 正しいURLを確認</li>'+
     '<li>提出したのに「未提出」→ 「対象月」を確認</li></ul>',
@@ -1370,6 +1493,7 @@ function resetOrderScreen(){
 }
 function maybeAutoTour(tab){
   if(!TOURS[tab]) return;
+  if(getDisplayRole()==="admin") return;
   if(tab==="stock" && !settingsUnlocked()) return;
   try{ if(location.search.indexOf("shot")>=0) return; }catch(e){}
   let done=false; try{ done = !!localStorage.getItem(tourDoneKey(tab)); }catch(e){ done=true; }
@@ -1401,7 +1525,7 @@ function endTour(mode){
   if(mode==="reset"){ resetOrderScreen(); return; }
   // 既定（はじめる / スキップ / ×）
   if(tourFromGuide && tourReturnState){ restoreUI(tourReturnState); tourReturnState = null; return; }
-  if(tourTab==="order"){ resetOrderScreen(); return; }
+  if(tourTab==="order"){ resetOrderScreen(); setTimeout(maybeShowStockRequestNotice, 300); return; }
   renderAll();
 }
 function showTourStep(){
@@ -1419,6 +1543,7 @@ function showTourStep(){
       if(typeof cleanup === "function"){ tourStepCleanup = cleanup; tourStepCleanupIdx = tourIdx; }
     }catch(e){}
   }
+  if(s.guideOnly && !tourFromGuide && tourIdx < steps.length-1){ tourIdx++; return showTourStep(); }
   let el = s.sel ? document.querySelector(s.sel) : null;
   if(s.sel && !el && tourIdx < steps.length-1){ tourIdx++; return showTourStep(); }
   if(el && el.scrollIntoView){ el.scrollIntoView({block:"center"}); }
@@ -1440,7 +1565,7 @@ function showTourStep(){
     const nav =
       '<div class="tour-step">'+(tourIdx+1)+' / '+steps.length+'</div>'+
       '<div class="tour-text">'+ s.html +
-        (tourIdx===0 ? '<div class="dim2" style="margin-top:8px">💡「次へ」ボタン、または <b>Enter キー</b> で進みます。「戻る」で1つ前に戻れます。</div>' : '') +
+        (tourIdx===0 ? '<div class="dim2" style="margin-top:8px">「次へ」ボタン、または <b>Enter キー</b> で進みます。「戻る」で1つ前に戻れます。</div>' : '') +
       '</div>'+
       '<div class="tour-btns">'+ btns +'</div>';
     const tour = $("#tour");
@@ -1506,9 +1631,24 @@ async function onModalClick(e){
   else if(a==="dispname-save"){
     const v = (document.getElementById("dispname-input")||{}).value||"";
     const c = (document.getElementById("dispcolor-input")||{}).value||DEFAULT_DISPLAY_COLOR;
+    const roleInput = document.querySelector('input[name="disprole"]:checked');
     if(!v.trim()){ showBanner("お名前を入力してください。","err"); return; }
+    setDisplayRole(roleInput ? roleInput.value : "staff");
     setDisplayName(v, c);
     closeModal();
+  }
+  else if(a==="lsh-report"){
+    const tid = b.dataset.id, storeId = b.dataset.store;
+    const input = document.getElementById("lsh-qty-"+tid);
+    if(!input || input.value.trim()===""){ showBanner("数量を入力してください。","err"); return; }
+    const qty = num(input.value);
+    const t = DB.pamphletTypes[tid]||{}, st = DB.stores[storeId]||{};
+    await store.put("stockReports", uid(), {
+      storeId: storeId, storeName: st.name||"", typeId: tid, typeName: t.name||"",
+      qty: qty, unit: "部", reportedAt: now(), reportedBy: getDisplayName()||""
+    });
+    showBanner(esc(t.name||"")+"の在庫数を記録しました。","info");
+    openLowStockHelper(storeId);
   }
 }
 
@@ -1615,6 +1755,45 @@ function setTabBadge(tabKey, n){
 function renderTabBadges(){
   setTabBadge('submitted', subUnconfirmedCount());
   setTabBadge('print', poUnconfirmedCount());
+  setTabBadge('stock', criticalLowStockTypes().length);
+}
+function maybeShowLowStockAlert(){
+  const critical = criticalLowStockTypes();
+  const tm = todayMonth();
+  const currentIds = critical.map(t=>t.id).sort();
+  let seen = null;
+  try{ seen = JSON.parse(localStorage.getItem("pamph_lowstock_seen")||"null"); }catch(e){}
+  if(!critical.length){
+    try{ localStorage.setItem("pamph_lowstock_seen", JSON.stringify({month:tm, typeIds:[]})); }catch(e){}
+    return;
+  }
+  const seenIds = (seen && seen.typeIds) || [];
+  const isNewMonth = !seen || seen.month !== tm;
+  const hasNewCritical = currentIds.some(id=> seenIds.indexOf(id)<0);
+  if(isNewMonth || hasNewCritical){
+    const names = critical.map(t=>esc(t.name)).join("、");
+    showBanner("こちらのパンフレットが減っているようです："+names, "err");
+    try{ localStorage.setItem("pamph_lowstock_seen", JSON.stringify({month:tm, typeIds:currentIds})); }catch(e){}
+  }
+}
+function maybeShowStockRequestNotice(){
+  if(getDisplayRole()==="admin") return;
+  let seen = false;
+  try{ seen = !!localStorage.getItem("pamph_stockreq_seen"); }catch(e){}
+  if(seen) return;
+  try{ localStorage.setItem("pamph_stockreq_seen","1"); }catch(e){}
+  openChatDemo();
+  modalCloseCb = closeChatDemo;
+  openModal("各店舗ご担当者へのお願い",
+    '<p>お手隙の際に、各店舗の在庫数を右下の「検索チャット」へご申告ください（今、サンプルのやり取りを表示しています）。<br>在庫状況をチャットでご報告いただけますと、在庫の減り具合をお知らせする機能が使えるようになります。</p>',
+    '<button class="btn primary sp" data-act="modal-close">閉じる</button>');
+}
+function maybeShowStockReminder(){
+  if(getDisplayRole()==="admin") return;
+  let done = false;
+  try{ done = !!localStorage.getItem("pamph_stock_done"); }catch(e){}
+  if(done) return;
+  showBanner("在庫状況の入力をオススメ致します。在庫状況をチャットでご報告いただけますと、在庫の管理も補助することができます。","info");
 }
 function renderAll(){
   if(calState) closeCalPop();
@@ -1709,7 +1888,7 @@ function viewOrder(){
   let anns = activeAnnouncements();
   if(UI.tourPreview && !anns.length) anns = [{createdAt:now(), text:"（例）10月号の新しいパンフレット「〇〇」を追加しました。次回の発注からご利用ください。"}];
   const noticeHtml = anns.length
-    ? '<section class="panel notice-box"><div class="notice-h">📢 お知らせ</div>'+
+    ? '<section class="panel notice-box"><div class="notice-h">お知らせ</div>'+
       anns.map(a=> '<div class="notice-item"><span class="notice-date">'+esc((a.createdAt||"").slice(0,10))+'</span>'+esc(a.text).replace(/\n/g,"<br>")+'</div>').join("")+
       '</section>'
     : '';
@@ -1717,8 +1896,8 @@ function viewOrder(){
   return noticeHtml + '<section class="panel">'+
     '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">'+
       '<div><h2>月次発注シート</h2><div class="sub">各店舗が対象月のパンフレット必要数をプルダウンで入力し、提出します。「束」の種類は束数で入力（約◯部を併記）。</div></div>'+
-      '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">'+
-        '<button class="btn" data-act="open-guide">📖 使い方ガイド</button>'+
+      '<div style="display:flex;flex-direction:column;align-items:stretch;gap:6px">'+
+        '<button class="btn" data-act="open-guide">使い方ガイド</button>'+
         '<div class="brand-legend">'+
           '<ul>'+
             '<li><span class="lg-dot" style="background:'+brandColor("none")+'"></span>：共通</li>'+
@@ -1733,6 +1912,7 @@ function viewOrder(){
       '<div class="fld"><label>店舗</label><select data-act="store">'+stOpts+'</select></div>'+
       '<div class="fld"><label>担当者名</label><input type="text" data-act="orderer" data-fk="ord-orderer" value="'+esc(UI.orderer)+'" placeholder="例）鈴木"></div>'+
       '<div class="fld" style="min-width:110px"><label>状態</label><div><span class="pill" style="background:'+statusColor(status)+'">'+esc(status)+'</span></div></div>'+
+      (UI.storeId ? '<div class="fld" style="min-width:auto"><label>&nbsp;</label><button type="button" class="btn sm" style="position:relative" data-act="low-stock-helper">在庫が少ないかも？'+(lowStockHelperHasUnseen(UI.storeId) ? '<span class="lsh-badge"></span>' : '')+'</button></div>' : '')+
     '</div>'+ body +
     '</section>';
 }
@@ -1839,7 +2019,7 @@ function viewSubmitted(){
     '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">'+
       '<div><h2>提出済み（提出データの確認・印刷）</h2>'+
       '<div class="sub">提出された発注データを店舗ごとに確認し、印刷して振り分けに使います。印刷は添付フォーマット（表紙＋発注数）で出力されます。</div></div>'+
-      '<button class="btn" data-act="open-guide">📖 使い方ガイド</button>'+
+      '<button class="btn" data-act="open-guide">使い方ガイド</button>'+
     '</div>'+
     '<div class="row">'+
       '<div class="fld"><label>対象月</label><input type="month" readonly data-act="sub-month" value="'+esc(m)+'"></div>'+
@@ -1951,7 +2131,7 @@ function viewHistory(){
   return '<section class="panel">'+
     '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">'+
       '<div><h2>過去の発注数</h2><div class="sub">種類ごと・月ごとの発注数の推移を確認できます。「提出済み」タブで<b>「準備済」</b>にしたものだけが集計に反映されます。</div></div>'+
-      '<button class="btn" data-act="open-guide">📖 使い方ガイド</button>'+
+      '<button class="btn" data-act="open-guide">使い方ガイド</button>'+
     '</div>'+
     '<div class="row">'+
       '<div class="fld"><label>期間（開始）</label><input type="month" readonly data-act="hfrom" value="'+esc(h.from)+'"></div>'+
@@ -2018,14 +2198,13 @@ function viewPrint(){
     const unconf = !p.confirmedAt;
     const sopts = PRINT_STATUS.map(s=> '<option value="'+s.name+'" '+((p.status||"依頼中")===s.name?"selected":"")+'>'+s.name+'</option>').join("");
     return '<tr class="'+(unconf?"po-new":"")+'">'+
-      '<td style="min-width:180px; text-align:left; vertical-align:middle">'+(unconf?'<span class="pill" style="background:var(--danger);margin-right:6px">新規</span>':'')+esc(p.typeName||t.name||"?")+'</td>'+
+      '<td style="min-width:260px; text-align:left; vertical-align:middle">'+(unconf?'<span class="pill" style="background:var(--danger);margin-right:6px">新規</span>':'')+esc(p.typeName||t.name||"?")+'</td>'+
       '<td><input class="short" type="text" inputmode="numeric" pattern="[0-9]*" data-act="po-qty" data-id="'+p.id+'" data-fk="poq-'+p.id+'" value="'+num(p.qty)+'"> 部</td>'+
-      '<td><input class="grow" type="text" data-act="po-note" data-id="'+p.id+'" data-fk="pon-'+p.id+'" value="'+esc(p.note||"")+'" placeholder="印刷所・仕様など"></td>'+
+      '<td><input type="text" style="width:110px" data-act="po-note" data-id="'+p.id+'" data-fk="pon-'+p.id+'" value="'+esc(p.note||"")+'" placeholder="印刷所・仕様など"></td>'+
       '<td><select class="po-status-select" data-act="po-status" data-id="'+p.id+'" style="color:#fff;background:'+printStatusColor(p.status||"依頼中")+'">'+sopts+'</select></td>'+
       '<td><input type="date" readonly data-act="po-due" data-id="'+p.id+'" data-fk="pod-'+p.id+'" value="'+esc(p.dueDate||"")+'"></td>'+
-      '<td class="muted">'+esc(p.month||"")+'</td>'+
       '<td class="muted">'+esc((p.createdAt||"").slice(0,10))+'</td>'+
-      '<td>'+(unconf ? '<button class="btn sm" data-act="po-confirm" data-id="'+p.id+'">確認</button>' : '<button class="btn sm" data-act="po-unconfirm" data-id="'+p.id+'">確認取消</button>')+'</td>'+
+      '<td style="white-space:nowrap">'+(unconf ? '<button class="btn sm" data-act="po-confirm" data-id="'+p.id+'">確認</button>' : '<button class="btn sm" data-act="po-unconfirm" data-id="'+p.id+'">確認取消</button>')+'</td>'+
       '<td><button class="btn sm danger" data-act="po-del" data-id="'+p.id+'">削除</button></td>'+
     '</tr>';
   }).join("");
@@ -2037,11 +2216,10 @@ function viewPrint(){
       '<div class="fld"><label>状態で絞り込み</label><select data-act="pofilter">'+stFilterOpts+'</select></div>'+
       '<div class="fld"><label>種類を追加</label><select data-act="po-newtype" data-fk="po-newtype"><option value="">種類を選択</option>'+addTypeOpts+'</select></div>'+
       '<div class="fld" style="min-width:110px"><label>部数</label><input type="text" inputmode="numeric" pattern="[0-9]*" id="po-newqty" data-fk="po-newqty" value="0"></div>'+
-      '<div class="fld" style="min-width:130px"><label>対象月</label><input type="month" readonly id="po-newmonth" data-fk="po-newmonth" value="'+esc(UI.sumMonth)+'"></div>'+
       '<div class="fld" style="min-width:auto"><label>&nbsp;</label><button class="btn" data-act="po-addmanual">追加</button></div>'+
     '</div>'+
-    '<div class="tbl-wrap"><table><thead><tr><th>種類</th><th>依頼部数</th><th>メモ</th><th>状態</th><th>納品目安日</th><th>対象月</th><th>登録日</th><th>確認</th><th></th></tr></thead>'+
-    '<tbody>'+ (poRows || '<tr><td colspan="9" class="muted">まだ登録がありません</td></tr>') +'</tbody></table></div>'+
+    '<div class="tbl-wrap"><table><thead><tr><th>種類</th><th>依頼部数</th><th>メモ</th><th>状態</th><th>納品目安日</th><th>登録日</th><th>確認</th><th></th></tr></thead>'+
+    '<tbody>'+ (poRows || '<tr><td colspan="8" class="muted">まだ登録がありません</td></tr>') +'</tbody></table></div>'+
     '</section>';
 }
 
@@ -2093,6 +2271,37 @@ function openStockHistory(typeId){
     '<button class="btn primary sp" data-act="modal-close">閉じる</button>',
     {wide:true});
 }
+function lowStockTypesForStore(storeId){
+  return activeTypes().filter(t=> lastStockReport(storeId, t.id) && stockRiskLevel(storeId, t.id)==="low");
+}
+function lowStockHelperHasUnseen(storeId){
+  const current = lowStockTypesForStore(storeId).map(t=>t.id).sort();
+  if(!current.length) return false;
+  let seen = [];
+  try{ seen = JSON.parse(localStorage.getItem("pamph_lsh_seen_"+storeId)||"[]"); }catch(e){}
+  return current.some(id=> seen.indexOf(id)<0);
+}
+function markLowStockHelperSeen(storeId){
+  const current = lowStockTypesForStore(storeId).map(t=>t.id).sort();
+  try{ localStorage.setItem("pamph_lsh_seen_"+storeId, JSON.stringify(current)); }catch(e){}
+}
+function openLowStockHelper(storeId){
+  const st = DB.stores[storeId] || {};
+  markLowStockHelperSeen(storeId);
+  const lowTypes = lowStockTypesForStore(storeId);
+  const rows = lowTypes.map(t=>
+    '<div class="rowline" style="align-items:center">'+
+      '<span class="grow">'+esc(t.name)+'</span>'+
+      '<input type="text" inputmode="numeric" pattern="[0-9]*" class="short" id="lsh-qty-'+t.id+'" placeholder="現在の部数">'+
+      '<button type="button" class="btn sm" data-act="lsh-report" data-id="'+t.id+'" data-store="'+storeId+'">報告する</button>'+
+    '</div>'
+  ).join("");
+  openModal("「"+esc(st.name||"")+"」在庫が少ない可能性のあるパンフレット",
+    '<div class="muted" style="margin-bottom:8px">現在の在庫状況をチャットでご申告していただけますと、この機能がお使いいただけます。ただし申告のないパンフレットにつきましては、この機能の対象外となります。</div>'+
+    (rows || '<p class="muted">現時点で在庫が少なそうなパンフレットは見つかりませんでした。</p>'),
+    '<button class="btn primary sp" data-act="modal-close">閉じる</button>');
+  renderAll();
+}
 function viewStock(){
   const byCat = typesByCat();
   const body = CATS.map(cat=>{
@@ -2114,7 +2323,7 @@ function viewStock(){
   return '<section class="panel">'+
     '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">'+
       '<div style="flex:1;min-width:260px"><h2>在庫管理</h2><div class="sub">各パンフレットの現在の在庫部数を管理します。数量欄に直接入力すると手動で更新できます。「提出済み」タブで店舗を「準備済にする」と自動的に減り、「印刷発注」タブで「納品済」にすると自動的に増えます。表紙をクリックすると増減の記録を確認できます。</div></div>'+
-      '<button class="btn" data-act="open-guide" style="flex:none;margin-left:auto">📖 使い方ガイド</button>'+
+      '<button class="btn" data-act="open-guide" style="flex:none;margin-left:auto">使い方ガイド</button>'+
     '</div>'+ (body || '<p class="muted">パンフレット種類が登録されていません。</p>') +
     '</section>';
 }
@@ -2247,7 +2456,7 @@ function viewSettings(){
           '</span>' : '')+
       '</span>'+
       '<select data-act="t-unit" data-id="'+t.id+'"><option value="部" '+(!isB?"selected":"")+'>部</option><option value="束" '+(isB?"selected":"")+'>束</option></select>'+
-      (isB? '<input class="short" type="text" inputmode="numeric" pattern="[0-9]*" data-act="t-perbundle" data-id="'+t.id+'" data-fk="tp-'+t.id+'" value="'+perBundleOf(t)+'" title="1束の目安部数（30〜50）">':'')+
+      '<input class="short" type="text" inputmode="numeric" pattern="[0-9]*" data-act="t-perbundle" data-id="'+t.id+'" data-fk="tp-'+t.id+'" value="'+perBundleOf(t)+'" title="1束の目安部数（30〜50）"'+(isB?'':' disabled')+'>'+
       '<label class="btn sm" style="cursor:pointer">画像<input type="file" accept="image/*" data-act="t-img" data-id="'+t.id+'" style="display:none"></label>'+
       '<label class="muted" style="display:flex;gap:5px;align-items:center;flex:none">NEW<input type="checkbox" data-act="t-new" data-id="'+t.id+'" '+(t.isNew?"checked":"")+'></label>'+
       '<label class="muted" style="display:flex;gap:6px;align-items:center;flex:none">表示'+
@@ -2489,6 +2698,7 @@ async function onClickInner(e,b,a,id,idx){
   /* 発注 */
   if(a==="open-guide"){ openGuide(UI.tab); return; }
   if(a==="preset-color"){ applyPresetColor(b); return; }
+  if(a==="low-stock-helper"){ if(!UI.storeId){ showBanner("店舗を選択してください。","err"); return; } openLowStockHelper(UI.storeId); return; }
   if(a==="fb-send"){
     const st = ($("#fb-store")||{}).value||"";
     const nm = (($("#fb-name")||{}).value||"").trim();
@@ -2576,11 +2786,10 @@ async function onClickInner(e,b,a,id,idx){
   if(a==="po-addmanual"){
     const sel = $('[data-act="po-newtype"]');
     const q = document.getElementById("po-newqty");
-    const mo = document.getElementById("po-newmonth");
     const tid = sel && sel.value; if(!tid){ showBanner("種類を選択してください。","err"); return; }
     const t = DB.pamphletTypes[tid]||{};
     const mqty = num(q && q.value);
-    const mmonth = (mo && mo.value) || UI.sumMonth;
+    const mmonth = UI.sumMonth;
     await store.put("printOrders", uid(), {
       typeId:tid, typeName:t.name||"", qty:mqty, actualCopies:0, note:"", dueDate:"",
       status:"依頼中", month:mmonth, createdAt:now(), updatedAt:now()
@@ -2729,33 +2938,191 @@ function maybeAutoPick(){
 }
 
 /* ---------- 検索チャット（AIなし・キーワード方式・完全無料） ---------- */
-const FAQ = [
-  { kw:["パスワード","忘れ","わからない"], a:"パスワードは「設定」タブの管理担当者にご確認ください。このパスワードは情報保護ではなく<b>誤操作防止</b>が目的のものです。" },
-  { kw:["束","部","単位","違い"], a:"パンフレットは種類ごとに「束」または「部」で管理されています。「束」の種類は目安部数（既定40部）をかけた「約◯部」に自動換算されます。" },
-  { kw:["準備済","受け取り"], a:"管理担当者が発送準備を完了すると「準備済」になり、店舗の担当者へ「受け取り、または受け取りされる方への手配をお願いします」という通知メールが自動送信されます。" },
-  { kw:["意見箱","要望","フィードバック"], a:"「意見箱」タブから、アプリやパンフレットについての気づき・ご要望を送信できます。担当者に通知メールが届きます。" },
-  { kw:["印刷発注","納品","発注済"], a:"「印刷発注」タブでは、依頼中→発注済→納品済の順に状態を管理します。「納品済」にすると、その部数が自動的に在庫管理タブの在庫数に加算されます。" },
-  { kw:["在庫","自動","増減"], a:"在庫管理タブでは、提出済みタブで「準備済にする」と自動で在庫が減り、印刷発注タブで「納品済」にすると自動で増えます。数量欄に直接入力して手動で修正することもできます。" },
-  { kw:["ブランド","色","丸","彩ハウス","fproducts","f.products"], a:"表紙の左上の丸の色でブランドが分かります。オレンジ＝彩ハウス、緑＝F.PRODUCTS、色が付いていない丸＝共通です。" },
-  { kw:["提出","直","修正","やり直"], a:"提出したあとでも、同じ「対象月」「店舗」を選び直せば前回の内容が表示されます。数量を直してもう一度「この内容で提出」を押せば上書きで更新されます。" },
-  { kw:["発注なし"], a:"その月に発注が無いときは「発注」タブの「今月は発注なしで提出」を押してください。押さないと「未提出」のまま店舗が残ってしまいます。" },
-  { kw:["メール","通知","届かない"], a:"メール通知が届かない場合は、設定タブの「メール通知」欄が有効になっているか、店舗のメールアドレスが登録されているかをご確認ください。" },
-  { kw:["チュートリアル","使い方","もう一度"], a:"各タブの「📖 使い方ガイド」ボタンから、いつでも使い方の説明とチュートリアル（案内ツアー）を見返せます。" },
-  { kw:["ローカル","demo","デモ"], a:"右上に「● ローカル demo モード」と出ている場合は、この端末だけにデータが保存されている状態です。全店舗で共有するには正しいURL（https://inoue-group.github.io/pamphlet/）を開いてください。" },
-  { kw:["印刷","色","出ない","背景"], a:"印刷時に色（見出し帯など）が出ない場合は、印刷ダイアログで「背景のグラフィック」をオンにしてください。用紙はA4横がおすすめです。" },
-  { kw:["エクスポート","バックアップ","インポート"], a:"設定タブの「データのバックアップ」から、全データをJSONで書き出し・読み込みできます。定期的なバックアップにご利用ください。" },
-  { kw:["ホーム画面","アプリ追加","アイコン追加","iphone","アイフォン","アプリのように","アプリとして"], a:"iPhoneのSafariでこのページを開いた状態で、画面下（または上）の「共有」ボタン（四角から矢印が上に伸びたアイコン）をタップし、メニューから「ホーム画面に追加」を選んで「追加」を押すと、アプリのようにホーム画面から起動できるようになります。" },
-  { kw:["ダークモード","ライトモード","暗いモード","明るいモード","画面の色","テーマ"], a:"画面右上のスイッチで、明るい表示（ライトモード）と暗い表示（ダークモード）を切り替えられます。初期設定はライトモードで、切り替えた設定はこの端末に記憶されます。" },
-  { kw:["手順","入力の仕方","やり方","毎月","3ステップ","使い方全般"], a:"毎月の流れは3ステップです。①対象月・店舗・担当者を選ぶ ②表紙を見ながらプルダウンで数量を選ぶ（「束」の種類は束数で。特記事項は備考欄へ） ③「この内容で提出」を押す。発注が無い月は「今月は発注なしで提出」を押してください。" },
-  { kw:["お知らせ","📢"], a:"画面の一番上に「📢 お知らせ」が表示されているときは、担当者からの連絡（新しいパンフレットの案内など）です。目を通してください。表示が無いときは何もありません。" },
-  { kw:["画面がおかしい","表示がおかしい","動かない","エラー","固まった"], a:"画面がおかしいときは、まず再読み込みをお試しください（PCはF5キー、スマホは画面を下に引っ張って更新）。それでも直らない場合は、正しいURL（https://inoue-group.github.io/pamphlet/）を開いているかご確認ください。" },
-  { kw:["未提出のまま","提出したのに未提出","提出が反映されない"], a:"提出したのに「未提出」のままに見える場合は、「対象月」の選択が正しいかご確認ください。別の月が選ばれていると、提出済みの内容が表示されません。" },
-  { kw:["履歴タブ","発注数の推移","過去の発注数"], a:"「履歴」タブでは、パンフレットの種類ごと・月ごとの発注数の推移を確認できます。期間・店舗・種類で絞り込めるほか、下の「回ごとの提出内容」で月＋店舗を選ぶと、当時の明細（数量・備考・状態）も確認できます。" },
-  { kw:["集計に反映されない","履歴に反映されない","集計されない"], a:"履歴タブ・集計タブには、「提出済みタブ」で「準備済」にしたものだけが反映されます。提出しただけ・担当者確認しただけの段階ではまだ集計に反映されません。" },
-  { kw:["担当者確認済","状態の流れ","提出済の意味"], a:"提出済みタブの状態は「提出済」→「担当者確認済」→「準備済（日付）」の順に進みます。「確認」「準備済にする」「提出取消」などのボタンはパンフレット管理担当者用です。店舗の方は押さないでください。発注内容を直したいときは「発注」タブから修正し、もう一度「提出」してください。" },
-  { kw:["在庫管理タブ","在庫の見方","在庫部数"], a:"「在庫管理」タブでは、パンフレットの現在の在庫部数を確認・管理できます（設定タブと共通のパスワードで保護）。数量欄に直接入力すると、その場で在庫数を手動更新できます（棚卸しなど）。表紙をクリックすると、その種類の増減履歴（日時・理由・増減数・残数）を確認できます。" },
-  { kw:["在庫がマイナス","在庫が0","在庫が足りない"], a:"在庫は0を下回りません。不足分については、在庫管理タブの増減履歴にメモが残ります。" }
+const FAQ_STRIP_SUFFIXES = [
+  "について教えてください","について詳しく教えて","について教えて下さい","について教えて",
+  "を教えてください","を教えて下さい","を教えて","のやり方を知りたい","のやり方は","のやり方",
+  "の仕方は","の仕方","のしかたは","のしかた","の方法は","の方法","はどうやるの","はどうやりますか",
+  "はどうすればいいですか","はどうすればいい","はどうすれば","はどうなっていますか","はどうなってるの",
+  "はどうなってる","はどこですか","はどこ","って何ですか","って何","って何なの","って無理",
+  "でしょうか","でしょう","ですか","ますか","くれる","下さい","ください","なの","なんですか",
+  "とは何ですか","とは何","とは","って","です","かな","かも","かしら"
 ];
+function normalizeForFaq(qRaw){
+  let s = String(qRaw||"").replace(/[？?！!。\.,、，　\s]+/g,"");
+  let guard = 0;
+  let changed = true;
+  while(changed && guard<12){
+    changed = false; guard++;
+    for(const suf of FAQ_STRIP_SUFFIXES){
+      if(s.length>suf.length && s.endsWith(suf)){ s = s.slice(0, -suf.length); changed = true; break; }
+    }
+  }
+  return s;
+}
+const CHAT_TEMPLATES = [
+  "在庫状況を申告する",
+  "準備済みとは",
+  "今月は発注なしにするには",
+  "毎月の入力手順",
+  "履歴タブでできること",
+  "集計に反映されるタイミング",
+  "在庫の見方",
+  "バックアップの取り方",
+  "スマホでアプリとして使うには？",
+  "ダークモードの切り替え方",
+  "メール通知が届かない"
+];
+const FAQ = [
+  { kw:["パスワード","暗証番号","pin","ロック解除","解除方法","鍵"], a:"パスワードは「設定」タブの管理担当者にご確認ください。このパスワードは情報保護ではなく<b>誤操作防止</b>が目的のものです。" },
+  { kw:["束","部","単位","何束","何部","束と部の違い"], a:"パンフレットは種類ごとに「束」または「部」で管理されています。「束」の種類は目安部数（既定40部）をかけた「約◯部」に自動換算されます。" },
+  { kw:["準備済","受け取り","受取","発送準備","梱包","取りに行く"], a:"管理担当者が発送準備を完了すると「準備済」になり、店舗の担当者へ「受け取り、または受け取りされる方への手配をお願いします」という通知メールが自動送信されます。" },
+  { kw:["意見箱","不具合報告","バグ報告","気づいたこと","要望を伝え"], a:"「意見箱」タブから、アプリやパンフレットについての気づき・ご要望を送信できます。担当者に通知メールが届きます。" },
+  { kw:["印刷発注","納品","発注済","依頼中","印刷の状況","発注状況"], a:"「印刷発注」タブでは、依頼中→発注済→納品済の順に状態を管理します。「納品済」にすると、その部数が自動的に在庫管理タブの在庫数に加算されます。" },
+  { kw:["在庫が減る","在庫が増える","在庫が変わった","自動","増減"], a:"在庫管理タブでは、提出済みタブで「準備済にする」と自動で在庫が減り、印刷発注タブで「納品済」にすると自動で増えます。数量欄に直接入力して手動で修正することもできます。" },
+  { kw:["ブランド","彩ハウス","fproducts","f.products","見分け方","緑の丸","オレンジの丸","何色","左上の表示","左上の丸","左上の印","サムネの左上","表紙の左上","丸は何"], a:"表紙の左上の丸の色でブランドが分かります。オレンジ＝彩ハウス、緑＝F.PRODUCTS、色が付いていない丸＝共通です。" },
+  { kw:["提出","直","修正","やり直","入力し直","数量を変え","訂正"], a:"提出したあとでも、同じ「対象月」「店舗」を選び直せば前回の内容が表示されます。数量を直してもう一度「この内容で提出」を押せば上書きで更新されます。" },
+  { kw:["発注なし","注文しない","注文なし","頼むものがない"], a:"その月に発注が無いときは「発注」タブの「今月は発注なしで提出」を押してください。押さないと「未提出」のまま店舗が残ってしまいます。" },
+  { kw:["メール","通知","届かない","来ない","連絡が来ない"], a:"メール通知が届かない場合は、設定タブの「メール通知」欄が有効になっているか、店舗のメールアドレスが登録されているかをご確認ください。" },
+  { kw:["チュートリアル","もう一度","案内をもう一度","操作方法","マニュアル","ツアー"], a:"各タブの「使い方ガイド」ボタンから、いつでも使い方の説明とチュートリアル（案内ツアー）を見返せます。" },
+  { kw:["ローカル","demo","デモ","共有されない","繋がってない","同期されてない"], a:"右上に「● ローカル demo モード」と出ている場合は、この端末だけにデータが保存されている状態です。全店舗で共有するには正しいURL（https://inoue-group.github.io/pamphlet/）を開いてください。" },
+  { kw:["色が出ない","印刷の背景","印刷できない","印刷時の色"], a:"印刷時に色（見出し帯など）が出ない場合は、印刷ダイアログで「背景のグラフィック」をオンにしてください。用紙はA4横がおすすめです。" },
+  { kw:["エクスポート","バックアップ","インポート","データの保存","データを保存したい"], a:"設定タブの「データのバックアップ」から、全データをJSONで書き出し・読み込みできます。定期的なバックアップにご利用ください。" },
+  { kw:["ホーム画面","アプリ追加","アイコン追加","iphone","アイフォン","アプリのように","アプリとして","アプリ化","デスクトップに置き","ショートカット作成"], a:"iPhoneのSafariでこのページを開いた状態で、画面下（または上）の「共有」ボタン（四角から矢印が上に伸びたアイコン）をタップし、メニューから「ホーム画面に追加」を選んで「追加」を押すと、アプリのようにホーム画面から起動できるようになります。" },
+  { kw:["ダークモード","ライトモード","暗いモード","明るいモード","画面の色","テーマ","夜モード","黒い画面","目に優しい"], a:"画面右上のスイッチで、明るい表示（ライトモード）と暗い表示（ダークモード）を切り替えられます。初期設定はライトモードで、切り替えた設定はこの端末に記憶されます。" },
+  { kw:["手順","入力の仕方","毎月","3ステップ","使い方全般","操作の流れ","発注の仕方"], a:"毎月の流れは3ステップです。①対象月・店舗・担当者を選ぶ ②表紙を見ながらプルダウンで数量を選ぶ（「束」の種類は束数で。特記事項は備考欄へ） ③「この内容で提出」を押す。発注が無い月は「今月は発注なしで提出」を押してください。" },
+  { kw:["お知らせ","連絡事項","案内文"], a:"画面の一番上に「お知らせ」が表示されているときは、担当者からの連絡（新しいパンフレットの案内など）です。目を通してください。表示が無いときは何もありません。" },
+  { kw:["画面がおかしい","表示がおかしい","動かない","エラー","固まった","フリーズ","反応しない","バグってる","重い"], a:"画面がおかしいときは、まず再読み込みをお試しください（PCはF5キー、スマホは画面を下に引っ張って更新）。それでも直らない場合は、正しいURL（https://inoue-group.github.io/pamphlet/）を開いているかご確認ください。" },
+  { kw:["未提出のまま","提出したのに未提出","提出が反映されない","提出漏れ"], a:"提出したのに「未提出」のままに見える場合は、「対象月」の選択が正しいかご確認ください。別の月が選ばれていると、提出済みの内容が表示されません。" },
+  { kw:["履歴タブ","発注数の推移","過去の発注数","昔の発注","前回の発注","過去のデータ"], a:"「履歴」タブでは、パンフレットの種類ごと・月ごとの発注数の推移を確認できます。期間・店舗・種類で絞り込めるほか、下の「回ごとの提出内容」で月＋店舗を選ぶと、当時の明細（数量・備考・状態）も確認できます。" },
+  { kw:["集計に反映されない","履歴に反映されない","集計されない","反映されるタイミング","反映条件","反映されない","集計に出ない"], a:"履歴タブ・集計タブには、「提出済みタブ」で「準備済」にしたものだけが反映されます。提出しただけ・担当者確認しただけの段階ではまだ集計に反映されません。" },
+  { kw:["担当者確認済","状態の流れ","提出済の意味","誰が確認する","確認って何"], a:"提出済みタブの状態は「提出済」→「担当者確認済」→「準備済（日付）」の順に進みます。「確認」「準備済にする」「提出取消」などのボタンはパンフレット管理担当者用です。店舗の方は押さないでください。発注内容を直したいときは「発注」タブから修正し、もう一度「提出」してください。" },
+  { kw:["在庫管理タブ","在庫の見方","在庫部数","在庫確認","棚卸し","在庫を見る","在庫は","在庫"], a:"「在庫管理」タブでは、パンフレットの現在の在庫部数を確認・管理できます（設定タブと共通のパスワードで保護）。数量欄に直接入力すると、その場で在庫数を手動更新できます（棚卸しなど）。表紙をクリックすると、その種類の増減履歴（日時・理由・増減数・残数）を確認できます。" },
+  { kw:["在庫がマイナス","在庫が0","在庫が足りない","在庫が0を下回"], a:"在庫は0を下回りません。不足分については、在庫管理タブの増減履歴にメモが残ります。" },
+  { kw:["WEBカタログ","webカタログ","カタログタブ","ウェブカタログ"], a:"「WEBカタログ」タブでは、各パンフレットのオンライン版（PDFやWebページ）へのリンクを一覧で確認できます。ブランドは表紙のドットの色で見分けられます（設定でカタログの追加・編集が可能です）。" },
+  { kw:["印刷発注に登録","印刷発注へ登録","集計から登録","発注をまとめて登録"], a:"「集計」タブで対象月の発注数を確認し、各行の「印刷発注へ登録」から部数を入力して登録すると、「印刷発注」タブにその内容が追加されます。" },
+  { kw:["同時に使え","何人まで","複数人で使え","他の人も見れる","同時編集","誰が見てる","一緒に使え"], a:"このアプリはクラウドでリアルタイム共有されているため、複数の店舗・担当者が同時に開いて使えます。画面右上のアイコンで、いま他に誰が見ているかも分かります。" },
+  { kw:["セキュリティ","安全","urlが漏れたら","誰でも編集できる","漏洩"], a:"このアプリはログイン不要で、URLを知っている方なら誰でも閲覧・編集できる仕様になっています。社外の方にURLが漏れないようご注意ください。" },
+  { kw:["ログイン","アカウント作成","会員登録","サインイン"], a:"このアプリはログインやアカウント登録は不要です。URLを開くだけで使えます。" },
+  { kw:["オフライン","電波がない","ネットがない環境","インターネットなし"], a:"このアプリはインターネット接続が必要です。オフラインでは最新のデータを見たり保存したりできません。" },
+  { kw:["名前の入力","名前を変更","アイコンの名前","苗字だけ表示","利用者名"], a:"初回にお名前の入力をお願いしています（本人確認のためではなく、誰が使っているか分かりやすくするためです）。画面右上の自分のアイコンをクリックすると、いつでも名前やアイコンの色を変更できます。" },
+  { kw:["プリセットカラー","定番の色","色の候補","色を選ぶ丸"], a:"色を選ぶ欄には、定番の色をワンクリックで選べる丸いボタン（プリセット）も用意されています。ボタンを押すと、より細かく色を設定することもできます。" },
+  { kw:["カレンダーの使い方","日付の選び方","月の選び方","年月の選び方"], a:"月や日付を選ぶ欄をクリックすると、アプリ専用のカレンダーが開きます。矢印（‹ ›）で年や月を切り替え、月や日にちをクリックすると選択できます。" },
+  { kw:["検索チャットとは","ai","人工知能","chatgpt"], a:"この検索チャットはAI（人工知能）による会話ではなく、キーワードに反応して自動で回答を返す仕組みです。アプリの使い方やデータの検索に無料でご利用いただけます。" },
+  { kw:["よくある質問","質問例","質問のテンプレート"], a:"チャット右上の「?」ボタンを押すと、よくある質問の例が一覧で表示されます。タップするとそのまま質問できます。" }
+];
+let pendingFaqChoices = null;
+let pendingStockChoice = null;
+let pendingStockReport = null;
+let pendingStoreForStockInput = null;
+function stockInputFormHtml(storeId){
+  const st = DB.stores[storeId] || {};
+  const types = activeTypes().slice().sort((a,b)=> String(a.name||"").localeCompare(String(b.name||""),"ja"));
+  if(!types.length) return "パンフレットの種類が登録されていません。";
+  const rows = types.map(t=>
+    '<div class="rowline" style="align-items:center">'+
+      '<span class="grow">'+esc(t.name)+'</span>'+
+      '<input type="text" inputmode="numeric" pattern="[0-9]*" class="short" id="sif-qty-'+t.id+'" placeholder="部数">'+
+    '</div>'
+  ).join("");
+  return '<div class="stock-input-form">'+
+    '<b>「'+esc(st.name||"")+'」在庫状況の申告</b>'+
+    '<div class="muted" style="margin:4px 0 8px">分かるものだけで構いません。空欄のものは送信されません。</div>'+
+    rows+
+    '<div style="margin-top:8px"><button type="button" class="btn primary sm" data-act="sif-submit" data-store="'+storeId+'">送信</button></div>'+
+  '</div>';
+}
+function lastStockReport(storeId, typeId){
+  const reports = Object.values(DB.stockReports||{})
+    .filter(r=> r.storeId===storeId && r.typeId===typeId)
+    .sort((a,b)=> String(b.reportedAt||"").localeCompare(String(a.reportedAt||"")));
+  return reports[0] || null;
+}
+function estimateStockText(store, type){
+  const reported = lastStockReport(store.id, type.id);
+  const sheets = Object.values(DB.orderSheets)
+    .filter(sh=> sh.storeId===store.id && isSubmitted(sh) && num((sh.lines||{})[type.id])>0)
+    .sort((a,b)=> String(a.month||"").localeCompare(String(b.month||"")));
+  if(reported){
+    const reportMonth = String(reported.reportedAt||"").slice(0,7);
+    const ordersSinceReport = sheets.filter(sh=> String(sh.month||"") > reportMonth);
+    if(!ordersSinceReport.length){
+      const ym = reportMonth.split("-");
+      const label = ym.length===2 && ym[0] && ym[1] ? (ym[0]+"年"+(+ym[1])+"月") : reportMonth;
+      return esc(store.name)+"「"+esc(type.name)+"」の在庫状況：<br>"+esc(label)+"時点では約"+num(reported.qty)+esc(reported.unit||"部")+"ありましたが、その後は発注されていません。";
+    }
+  }
+  const reportedLine = reported
+    ? "<br><span class=\"dim2\">※"+esc((reported.reportedAt||"").slice(0,10))+"に店舗から伺った在庫数：約"+num(reported.qty)+esc(reported.unit||"部")+"</span>"
+    : "";
+  if(!sheets.length) return esc(store.name)+"の「"+esc(type.name)+"」について：<br>こちらのパンフレットは過去に発注された履歴がございません。"+reportedLine;
+  const months = sheets.map(sh=>sh.month);
+  const last = months[months.length-1];
+  const monthsSince = monthDiff(last, todayMonth());
+  const weights = seasonalWeights();
+  const elapsedW = weightedSpan(last, todayMonth(), weights);
+  let avgGapW = null;
+  if(months.length>=2){
+    const gaps = [];
+    for(let i=1;i<months.length;i++) gaps.push(weightedSpan(months[i-1], months[i], weights));
+    avgGapW = gaps.reduce((a,b)=>a+b,0)/gaps.length;
+  }
+  let guess;
+  if(avgGapW!=null && avgGapW>0){
+    const pct = Math.round((elapsedW/avgGapW)*100);
+    if(elapsedW>=avgGapW) guess = "前回の発注（"+last+"）から"+monthsSince+"か月経っています。時期的な繁忙度（他店舗も含めた発注の多い時期・少ない時期）を加味すると、これまでの発注ペースに対して約"+pct+"%が経過しており、<b>在庫はわずかになっている可能性があります</b>。";
+    else guess = "前回の発注（"+last+"）から"+monthsSince+"か月です。時期的な繁忙度を加味しても、これまでの発注ペースに対してまだ約"+pct+"%の経過にとどまるため、<b>まだ在庫に余裕があると思われます</b>。";
+  } else {
+    guess = "前回の発注は"+last+"でした（"+monthsSince+"か月前）。過去の発注回数が少ないため、傾向からの推測は難しいです。";
+  }
+  return esc(store.name)+"「"+esc(type.name)+"」の在庫状況（発注履歴と時期的な傾向からの推測）：<br>"+guess+"<br><span class=\"dim2\">※あくまで過去の発注間隔・時期的な傾向からの推測です。このアプリでは店舗ごとの実際の在庫数は管理していないため、正確な数値ではありません。確実に知りたい場合は店舗へ直接ご確認ください。</span>"+reportedLine;
+}
+/* 店舗ごとの在庫が少ない可能性："low"/"ok"/"unknown" */
+function stockRiskLevel(storeId, typeId){
+  const reports = Object.values(DB.stockReports||{})
+    .filter(r=> r.storeId===storeId && r.typeId===typeId)
+    .sort((a,b)=> String(a.reportedAt||"").localeCompare(String(b.reportedAt||"")));
+  const tm = todayMonth();
+  if(reports.length>=2){
+    const prev = reports[reports.length-2], last = reports[reports.length-1];
+    const monthsBetween = monthDiff(String(prev.reportedAt||"").slice(0,7), String(last.reportedAt||"").slice(0,7)) || 1;
+    const rate = (num(prev.qty)-num(last.qty)) / monthsBetween;
+    const monthsSinceLast = monthDiff(String(last.reportedAt||"").slice(0,7), tm);
+    const projected = num(last.qty) - rate*monthsSinceLast;
+    return (rate>0 && projected <= Math.max(5, num(last.qty)*0.15)) ? "low" : "ok";
+  }
+  if(reports.length===1){
+    const rMonth = String(reports[0].reportedAt||"").slice(0,7);
+    const weights = seasonalWeights();
+    const elapsedW = weightedSpan(rMonth, tm, weights);
+    return elapsedW>=3 ? "low" : "ok";
+  }
+  const sheets = Object.values(DB.orderSheets)
+    .filter(sh=> sh.storeId===storeId && isSubmitted(sh) && num((sh.lines||{})[typeId])>0)
+    .sort((a,b)=> String(a.month||"").localeCompare(String(b.month||"")));
+  if(sheets.length>=2){
+    const months = sheets.map(sh=>sh.month);
+    const weights = seasonalWeights();
+    const last = months[months.length-1];
+    const elapsedW = weightedSpan(last, tm, weights);
+    const gaps = [];
+    for(let i=1;i<months.length;i++) gaps.push(weightedSpan(months[i-1], months[i], weights));
+    const avgGapW = gaps.reduce((a,b)=>a+b,0)/gaps.length;
+    return (avgGapW>0 && elapsedW>=avgGapW) ? "low" : "ok";
+  }
+  return "unknown";
+}
+/* 中央在庫（在庫管理タブ）が直近半年の平均出荷部数を下回っている種類 */
+function criticalLowStockTypes(){
+  const months = monthRange(monthsAgo(5), todayMonth());
+  return activeTypes().filter(t=>{
+    const totals = typeMonthlyTotals(t.id, months).map(v=> toCopies(t, v));
+    const nonZero = totals.filter(v=>v>0);
+    if(!nonZero.length) return false;
+    const avgDemand = nonZero.reduce((a,b)=>a+b,0)/nonZero.length;
+    return avgDemand>0 && num(t.stockQty) < avgDemand;
+  });
+}
+function faqLabel(item){ return item.label || (item.kw[0]+"について"); }
 function splitTokens(q){
   return String(q||"").split(/[\s　、,／\/]+/).map(s=>s.trim()).filter(s=>s.length>=1);
 }
@@ -2810,18 +3177,73 @@ function typeMonthlyTotals(typeId, months){
     return raw;
   });
 }
+/* 月ごとの繁忙度（全店舗の発注部数から算出）。在庫の推測に使う */
+function seasonalWeights(){
+  const sums = {}, counts = {};
+  for(let m=1;m<=12;m++){ sums[m]=0; counts[m]=0; }
+  Object.values(DB.orderSheets).forEach(sh=>{
+    if(!isSubmitted(sh) || !sh.month) return;
+    const mm = +String(sh.month).split("-")[1];
+    if(!mm) return;
+    const copies = Object.entries(sh.lines||{}).reduce((a,[tid,v])=> a+toCopies(DB.pamphletTypes[tid],v), 0);
+    sums[mm]+=copies; counts[mm]++;
+  });
+  const avgs = {};
+  for(let m=1;m<=12;m++){ avgs[m] = counts[m] ? sums[m]/counts[m] : 0; }
+  const knownAvgs = Object.values(avgs).filter(v=>v>0);
+  const overallAvg = knownAvgs.length ? knownAvgs.reduce((a,b)=>a+b,0)/knownAvgs.length : 0;
+  const weights = {};
+  for(let m=1;m<=12;m++){ weights[m] = overallAvg>0 ? (avgs[m]||overallAvg)/overallAvg : 1; }
+  return weights;
+}
+/* fromMonth(YYYY-MM,含まない)〜toMonth(YYYY-MM,含む)の繁忙度を合計した「重み付き経過月数」 */
+function weightedSpan(fromMonth, toMonth, weights){
+  let [y,m] = String(fromMonth||"").split("-").map(Number);
+  const [ty,tm] = String(toMonth||"").split("-").map(Number);
+  if(!y||!m||!ty||!tm) return 0;
+  let total = 0, guard = 0;
+  m++; if(m>12){ m=1; y++; }
+  while((y<ty || (y===ty && m<=tm)) && guard++<60){
+    total += weights[m]||1;
+    m++; if(m>12){ m=1; y++; }
+  }
+  return total;
+}
 const CHAT_NG_WORDS = ["セックス","えっち","エッチ","ちんこ","ちんちん","ちんぽ","まんこ","おっぱい","フェラ","パイズリ","ヤリマン","ヤリチン","中出し","レイプ","強姦","ロリ","ペニス","ヴァギナ","バギナ","射精","勃起","風俗","援交","乳首","局部","エロ","アダルト","うんち","うんこ","death","fuck","shit"];
 function chatAnswer(qRaw){
   const q = String(qRaw||"").trim();
   if(!q) return "何か聞きたいことを入力してください。";
   const qLower = q.toLowerCase();
   if(CHAT_NG_WORDS.some(w=> qLower.indexOf(w.toLowerCase())>=0)) return "仕事してください(笑)";
+  const CHAT_CLOSING_RE = /^(ありがとう(ございます|ね)?|どうも|サンキュー|thanks|thank\s*you|ok|okです|おっけー|おっけ|了解(です|しました)?|承知(しました|いたしました)?|わかりました|わかった|分かりました|分かった|助かりました|助かった|感謝(します|いたします)?)[!！。.、,\s]*$/i;
+  if(CHAT_CLOSING_RE.test(q)) return "こちらこそお役に立てて光栄です。また何かございましたら、お気軽にお尋ねください。";
+  const STOCK_DONE_RE = /^(在庫登録は以上です|在庫報告は以上です|在庫の登録は以上です|在庫申告は以上です|在庫入力は以上です|在庫は以上です|在庫の報告は以上です)[!！。.、,\s]*$/;
+  if(STOCK_DONE_RE.test(q.trim())){
+    try{ localStorage.setItem("pamph_stock_done","1"); }catch(e){}
+    return "承知しました。ご協力ありがとうございます。またご報告いただける際は、いつでもお気軽にお声がけください。";
+  }
+  const STOCK_INPUT_RE = /^(在庫状況を申告する|在庫を申告する|在庫状況の申告|在庫を報告する|在庫状況を報告する|在庫を入力する|在庫状況を入力する)[!！。.、,\s]*$/;
+  if(STOCK_INPUT_RE.test(q.trim())){
+    if(UI.storeId && DB.stores[UI.storeId]) return stockInputFormHtml(UI.storeId);
+    const storesList = activeStores();
+    if(!storesList.length) return "店舗が登録されていません。";
+    pendingStoreForStockInput = storesList;
+    const chips = storesList.map((s,i)=> '<button type="button" class="chat-chip" data-store-input-choice="'+i+'">'+esc(s.name)+'</button>').join("");
+    return "どちらの店舗の在庫状況を申告しますか？<div class=\"chat-choice-row\">"+chips+"</div>";
+  }
 
   const type = findTypeEntity(q);
   const store = findEntity(activeStores(), s=>s.name, q);
   const catalog = findEntity(Object.values(DB.catalogs), c=>c.title, q);
   const monthQ = parseMonthFromQuery(q);
   const PW_MSG = "こちらの情報は管理者のみ閲覧可能です。ご質問は深谷店管理者(岡田)へお問い合わせください。";
+
+  const STOCK_COMPLAINT_RE = /(最低在庫(数)?が?(低すぎ|少なすぎ|低い|少ない)|発注ペース.*(早く|上げ|増やし)|(もっと|さらに)(発注|部数|在庫).*(欲しい|増やし|多く)|在庫(数)?が?(少なすぎ|足りな)|部数が?足りな|もっと(多め|たくさん))/;
+  if(STOCK_COMPLAINT_RE.test(q)){
+    const who = store ? esc(store.name)+"より、" : "";
+    sendNotify("submit", "【ご要望】在庫・発注ペースについて", who+"検索チャットに以下のようなご要望が届きました：\n\n"+q+"\n\nアプリ：https://inoue-group.github.io/pamphlet/");
+    return "管理者へお知らせいたしますので、ご連絡をお待ちください。";
+  }
 
   if(type && /在庫/.test(q) && /(履歴|理由|いつ|経緯)/.test(q)){
     if(!settingsUnlocked()) return PW_MSG;
@@ -2858,6 +3280,14 @@ function chatAnswer(qRaw){
     const u = catalog.url||"";
     return "「"+esc(catalog.title)+"」のURL：<br>"+(u?'<a href="'+esc(u)+'" target="_blank" rel="noopener">'+esc(u)+'</a>':"（URL未登録です）");
   }
+  if(type && store && /在庫/.test(q) && !/[?？]/.test(q)){
+    const mNum = q.match(/(\d+)\s*部/);
+    if(mNum){
+      const qty = Math.max(0, parseInt(mNum[1],10));
+      pendingStockReport = { storeId: store.id, storeName: store.name, typeId: type.id, typeName: type.name, qty: qty, unit: "部" };
+      return "ありがとうございます。「"+esc(store.name)+"」の「"+esc(type.name)+"」の在庫数（約"+qty+"部）を記録しました。今後の在庫状況のご案内に活用します。";
+    }
+  }
   if(type && store && /(発注|提出|状況|状態)/.test(q)){
     const m = monthQ || UI.month || todayMonth();
     const sh = DB.orderSheets[sheetId(m, store.id)];
@@ -2866,6 +3296,13 @@ function chatAnswer(qRaw){
     if(!v) return esc(store.name)+"の"+esc(m)+"分に「"+esc(type.name)+"」の発注はありません。";
     return esc(store.name)+"の"+esc(m)+"分「"+esc(type.name)+"」：<b>"+v+" "+unitOf(type)+"</b>（約"+toCopies(type,v)+"部）";
   }
+  if(store && !type && /在庫/.test(q)){
+    const candidateTypes = activeTypes().slice().sort((a,b)=> String(a.name||"").localeCompare(String(b.name||""),"ja"));
+    if(!candidateTypes.length) return "パンフレットの種類が登録されていません。";
+    pendingStockChoice = { storeId: store.id, storeName: store.name, types: candidateTypes };
+    const chips = candidateTypes.map((t,i)=> '<button type="button" class="chat-chip" data-stock-choice="'+i+'">'+esc(t.name)+'</button>').join("");
+    return esc(store.name)+"の、どちらのパンフレットの在庫状況をご覧になりますか？<div class=\"chat-choice-row\">"+chips+"</div>";
+  }
   if(store && /(発注|提出|状況|状態)/.test(q)){
     const m = monthQ || UI.month || todayMonth();
     const sh = DB.orderSheets[sheetId(m, store.id)];
@@ -2873,6 +3310,17 @@ function chatAnswer(qRaw){
     const items = Object.entries(sh.lines||{}).filter(([,v])=>num(v)>0);
     const copies = items.reduce((a,[tid,v])=> a+toCopies(DB.pamphletTypes[tid],v), 0);
     return esc(store.name)+"の"+esc(m)+"分：<b>"+esc(sh.status||"")+"</b>／"+items.length+"品目／約"+copies+"部（担当："+esc(sh.orderer||"—")+"）";
+  }
+  if(type && /(彩ハウス|彩|f\.?products|エフプロダクツ|fプロダクツ|エフ|\bf\b)/i.test(q) && /(使える|使用|対応|大丈夫|ok|いい)/i.test(q)){
+    const askedBrand = /(彩ハウス|彩)/.test(q) ? "sai" : "fp";
+    const tb = type.brand==="fp" ? "fp" : type.brand==="none" ? "none" : "sai";
+    const brandName = askedBrand==="sai" ? "彩ハウス" : "F.PRODUCTS";
+    const dotDesc = askedBrand==="sai" ? "白いまたはオレンジの〇" : "白いまたは緑の〇";
+    if(tb==="none" || tb===askedBrand){
+      return "はい。ご利用いただけます。表紙画像の左上に"+dotDesc+"が表示されていれば、"+brandName+"でご使用いただけます。";
+    }
+    const otherBrandName = askedBrand==="sai" ? "F.PRODUCTS" : "彩ハウス";
+    return "「"+esc(type.name)+"」は"+otherBrandName+"専用として登録されているため、"+brandName+"では使用しない想定です。共通のものは表紙左上が白い〇、ブランド専用のものはオレンジ（彩ハウス）または緑（F.PRODUCTS）の〇で表示されます。";
   }
   if(type){
     const bd = type.brand==="sai" ? "彩ハウス" : type.brand==="fp" ? "F.PRODUCTS" : "共通";
@@ -2913,13 +3361,23 @@ function chatAnswer(qRaw){
     }
   }
 
-  let bestFaq=null, bestScore=0;
-  FAQ.forEach(item=>{
+  const qNorm = normalizeForFaq(q);
+  const qNormLower = qNorm.toLowerCase();
+  const scored = FAQ.map(item=>{
     let score=0;
-    item.kw.forEach(k=>{ if(q.indexOf(k)>=0) score++; });
-    if(score>bestScore){ bestScore=score; bestFaq=item; }
-  });
-  if(bestFaq) return bestFaq.a;
+    item.kw.forEach(k=>{ const kl=k.toLowerCase(); if(qLower.indexOf(kl)>=0 || qNormLower.indexOf(kl)>=0) score++; });
+    return {item:item, score:score};
+  }).filter(x=>x.score>0).sort((a,b)=> b.score-a.score);
+  if(scored.length){
+    const top = scored[0].score;
+    const topCandidates = scored.filter(x=>x.score===top);
+    const ambiguous = topCandidates.length>1 || (top===1 && scored.length>1);
+    if(!ambiguous) return topCandidates[0].item.a;
+    const options = (topCandidates.length>1 ? topCandidates : scored).slice(0,4).map(x=>x.item);
+    pendingFaqChoices = options;
+    const chips = options.map((it,i)=> '<button type="button" class="chat-chip" data-faq-choice="'+i+'">'+esc(faqLabel(it))+'</button>').join("");
+    return "似たご質問がいくつか見つかりました。近いものを選んでください。<div class=\"chat-choice-row\">"+chips+"</div>";
+  }
 
   const allNames = []
     .concat(Object.values(DB.pamphletTypes).map(t=>t.name))
@@ -3001,6 +3459,7 @@ function start(){
   let isShot = false; try{ isShot = location.search.indexOf("shot")>=0; }catch(e){}
   if(!isShot && !getDisplayName()){ promptDisplayNameFirstTime(); return; }
   maybeAutoTour(UI.tab);
+  if(!isShot) setTimeout(maybeShowStockReminder, 1200);
 }
 if(document.readyState==="loading") document.addEventListener("DOMContentLoaded", start);
 else start();
