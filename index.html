@@ -1137,13 +1137,23 @@ function boot(){
     const ans = chatAnswer(v);
     setTimeout(function(){ pushChatMsg("bot", ans); }, 200);
   }
+  let chatFitTimer = null;
   function syncChatPanelHeight(){
     if(!chatPanel || window.innerWidth > 700) { if(chatPanel){ chatPanel.style.height = ""; chatPanel.style.top = ""; } return; }
     if(chatPanel.classList.contains("hide")) return;
     if(window.visualViewport){
-      chatPanel.style.height = window.visualViewport.height + "px";
-      chatPanel.style.top = window.visualViewport.offsetTop + "px";
+      const h = Math.round(window.visualViewport.height) + "px";
+      const t = Math.round(window.visualViewport.offsetTop) + "px";
+      if(chatPanel.style.height !== h) chatPanel.style.height = h;
+      if(chatPanel.style.top !== t) chatPanel.style.top = t;
     }
+  }
+  function startChatFitPolling(){
+    stopChatFitPolling();
+    chatFitTimer = setInterval(syncChatPanelHeight, 120);
+  }
+  function stopChatFitPolling(){
+    if(chatFitTimer){ clearInterval(chatFitTimer); chatFitTimer = null; }
   }
   if(window.visualViewport){
     window.visualViewport.addEventListener("resize", syncChatPanelHeight);
@@ -1158,16 +1168,19 @@ function boot(){
           pushChatMsg("bot","こんにちは！パンフレットの在庫・発注状況やアプリの使い方について質問できます。<br>例）「〇〇店の発注状況」「◯◯の在庫は？」「スマホでアプリとして使うには？」");
         }
         syncChatPanelHeight();
+        startChatFitPolling();
         if(chatInput && window.innerWidth > 700) chatInput.focus();
+      } else {
+        stopChatFitPolling();
       }
     });
   }
-  if(chatClose && chatPanel) chatClose.addEventListener("click", ()=> chatPanel.classList.add("hide"));
+  if(chatClose && chatPanel) chatClose.addEventListener("click", ()=>{ chatPanel.classList.add("hide"); stopChatFitPolling(); });
   if(chatSend) chatSend.addEventListener("click", sendChat);
   if(chatInput) chatInput.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); sendChat(); } });
   if(chatInput){
-    chatInput.addEventListener("focus", ()=> setTimeout(syncChatPanelHeight, 50));
-    chatInput.addEventListener("blur", ()=> setTimeout(syncChatPanelHeight, 50));
+    chatInput.addEventListener("focus", startChatFitPolling);
+    chatInput.addEventListener("blur", ()=> setTimeout(syncChatPanelHeight, 300));
   }
   document.addEventListener("click", e=>{
     if(UI.brandPickerOpenId!==null && !e.target.closest(".brand-picker")){ UI.brandPickerOpenId = null; renderAll(); }
