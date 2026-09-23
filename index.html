@@ -177,8 +177,10 @@ window.PAMPH_FIREBASE_CONFIG = {
   .brand-legend li{display:flex; align-items:center; justify-content:flex-start; gap:5px}
   .lg-dot{width:10px; height:10px; border-radius:50%; flex:none; border:1px solid rgba(0,0,0,.25); box-shadow:0 0 0 2px rgba(255,255,255,.8)}
   @media (max-width:700px){
-    .guide-legend-wrap{flex-direction:row; align-items:center; flex-wrap:wrap}
-    .brand-legend ul{flex-direction:row; flex-wrap:wrap; gap:2px 8px}
+    .guide-legend-wrap{flex-direction:row; align-items:center; flex-wrap:nowrap; gap:6px}
+    .guide-legend-wrap .guide-btn{flex:none; padding:5px 9px; font-size:12px; white-space:nowrap}
+    .brand-legend{padding:4px 7px}
+    .brand-legend ul{flex-direction:row; flex-wrap:wrap; gap:2px 6px}
   }
   .thumb{width:100%; aspect-ratio:3/4; border-radius:8px; background:var(--chip); object-fit:contain; display:block}
   .thumb.ph{display:grid; place-items:center; color:var(--ink-soft); font-size:11px; text-align:center; padding:6px}
@@ -2087,7 +2089,7 @@ function viewOrder(){
     '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">'+
       '<div><h2>月次発注シート</h2><div class="sub">各店舗が対象月のパンフレット必要数をプルダウンで入力し、提出します。「束」の種類は束数で入力（約◯部を併記）。</div></div>'+
       '<div class="guide-legend-wrap" style="display:flex;flex-direction:column;align-items:stretch;gap:6px">'+
-        '<button class="btn" data-act="open-guide">使い方ガイド</button>'+
+        '<button class="btn guide-btn" data-act="open-guide">使い方ガイド</button>'+
         '<div class="brand-legend">'+
           '<ul>'+
             '<li><span class="lg-dot" style="background:'+brandColor("none")+'"></span>：共通</li>'+
