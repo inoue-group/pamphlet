@@ -1048,7 +1048,7 @@ function activeAnnouncements(){
     .filter(a=> a && a.active!==false && a.text && (!a.from || a.from<=t) && (!a.to || t<=a.to))
     .sort((a,b)=> String(b.createdAt||"").localeCompare(String(a.createdAt||"")));
 }
-function typesByCat(){ const m={}; CATS.forEach(c=>m[c.key]=[]); activeTypes().forEach(t=>{ (m[t.category]||m.pamphlet).push(t); }); return m; }
+function typesByCat(includeInactive){ const m={}; CATS.forEach(c=>m[c.key]=[]); (includeInactive?typesSorted():activeTypes()).forEach(t=>{ (m[t.category]||m.pamphlet).push(t); }); return m; }
 const sheetId = (month,storeId)=> month+"__"+storeId;
 const statusColor = name => { const s=cfg().statuses.find(x=>x.name===name); return s?s.color:"#6b7280"; };
 
@@ -1771,10 +1771,21 @@ async function onModalClick(e){
     }
   }
   else if(a==="stock-log-del"){
-    if(!confirm("この履歴項目を削除しますか？（在庫数そのものは変更されません）")) return;
+    if(!confirm("この履歴項目を削除しますか？この増減分は在庫数からも取り消されます。")) return;
     const typeId = b.dataset.type;
-    await store.remove("stockLogs", b.dataset.id);
+    const logId = b.dataset.id;
+    const log = DB.stockLogs[logId];
+    await store.remove("stockLogs", logId);
+    if(log){
+      const t = DB.pamphletTypes[typeId];
+      if(t){
+        const newQty = Math.max(0, num(t.stockQty) - num(log.delta));
+        t.stockQty = newQty;
+        await store.merge("pamphletTypes", typeId, {stockQty:newQty, stockUpdatedAt: now()});
+      }
+    }
     openStockHistory(typeId);
+    renderAll();
   }
   else if(a==="preset-color"){ applyPresetColor(b); }
   else if(a==="dispname-save"){
@@ -2508,7 +2519,7 @@ function openLowStockHelper(storeId){
   renderAll();
 }
 function viewStock(){
-  const byCat = typesByCat();
+  const byCat = typesByCat(true);
   const body = CATS.map(cat=>{
     const list = byCat[cat.key]||[];
     if(!list.length) return "";
