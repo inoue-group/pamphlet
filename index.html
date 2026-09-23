@@ -1015,6 +1015,17 @@ function placePresenceList(){
   else if(!isMobile && tabsNav && userRow.parentElement !== tabsNav){ tabsNav.appendChild(userRow); }
   renderPresence();
 }
+function placeThemeSwitch(){
+  const sw = document.querySelector(".theme-switch"), brand = document.getElementById("brandTitle"),
+        appbarIn = document.querySelector(".appbar-in"), anchor = $("#presenceMobileSlot");
+  if(!sw || !brand) return;
+  const isMobile = presenceMobileMQ ? presenceMobileMQ.matches : false;
+  if(isMobile){
+    if(sw.previousElementSibling !== brand){ brand.insertAdjacentElement("afterend", sw); }
+  } else if(appbarIn && sw.nextElementSibling !== anchor){
+    appbarIn.insertBefore(sw, anchor || null);
+  }
+}
 function cfg(){
   const c = DB.config.app || {};
   return {
@@ -1268,7 +1279,8 @@ function boot(){
   window.addEventListener("beforeunload", stopPresenceHeartbeat);
   window.addEventListener("pagehide", stopPresenceHeartbeat);
   placePresenceList();
-  if(presenceMobileMQ) presenceMobileMQ.addEventListener("change", placePresenceList);
+  placeThemeSwitch();
+  if(presenceMobileMQ) presenceMobileMQ.addEventListener("change", ()=>{ placePresenceList(); placeThemeSwitch(); });
   window.addEventListener("resize", debounce(renderPresence, 150));
   const presenceListEl0 = $("#presenceList");
   if(presenceListEl0) presenceListEl0.addEventListener("click", e=>{
