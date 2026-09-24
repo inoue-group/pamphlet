@@ -176,7 +176,8 @@ window.PAMPH_FIREBASE_CONFIG = {
   .brand-legend ul{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:1px}
   .brand-legend li{display:flex; align-items:center; justify-content:flex-start; gap:5px}
   .lg-dot{width:10px; height:10px; border-radius:50%; flex:none; border:1px solid rgba(0,0,0,.25); box-shadow:0 0 0 2px rgba(255,255,255,.8)}
-  .guide-legend-wrap{display:flex; flex-direction:column; align-items:stretch; gap:6px; margin-bottom:16px}
+  .guide-legend-wrap{display:flex; flex-direction:column; align-items:stretch; gap:6px}
+  .tab-head{margin-bottom:16px}
   @media (max-width:700px){
     .guide-legend-wrap{flex-direction:row; align-items:center; flex-wrap:nowrap; gap:6px}
     .guide-legend-wrap .guide-btn{flex:none; padding:5px 9px; font-size:12px; white-space:nowrap}
@@ -2110,7 +2111,7 @@ function viewOrder(){
     : '';
 
   return noticeHtml + '<section class="panel">'+
-    '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">'+
+    '<div class="tab-head" style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">'+
       '<div><h2>月次発注シート</h2><div class="sub">各店舗が対象月のパンフレット必要数をプルダウンで入力し、提出します。「束」の種類は束数で入力（約◯部を併記）。</div></div>'+
       '<div class="guide-legend-wrap">'+
         '<button class="btn guide-btn" data-act="open-guide">使い方ガイド</button>'+
@@ -2232,7 +2233,7 @@ function viewSubmitted(){
   }
 
   return '<section class="panel">'+
-    '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">'+
+    '<div class="tab-head" style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">'+
       '<div><h2>提出済み（提出データの確認・印刷）</h2>'+
       '<div class="sub">提出された発注データを店舗ごとに確認し、印刷して振り分けに使います。印刷は添付フォーマット（表紙＋発注数）で出力されます。</div></div>'+
       '<button class="btn" data-act="open-guide">使い方ガイド</button>'+
@@ -2345,7 +2346,7 @@ function viewHistory(){
   }
 
   return '<section class="panel">'+
-    '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">'+
+    '<div class="tab-head" style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">'+
       '<div><h2>過去の発注数</h2><div class="sub">種類ごと・月ごとの発注数の推移を確認できます。「提出済み」タブで<b>「準備済」</b>にしたものだけが集計に反映されます。</div></div>'+
       '<button class="btn" data-act="open-guide">使い方ガイド</button>'+
     '</div>'+
