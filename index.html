@@ -642,7 +642,17 @@ function firebaseStore(fdb, projectId){
     },
     put(coll,id,data){ return fdb.collection(coll).doc(id).set(data); },
     merge(coll,id,data){ return fdb.collection(coll).doc(id).set(data,{merge:true}); },
-    remove(coll,id){ return fdb.collection(coll).doc(id).delete(); }
+    remove(coll,id){ return fdb.collection(coll).doc(id).delete(); },
+    batchWrite(ops){
+      const b = fdb.batch();
+      ops.forEach(op=>{
+        const ref = fdb.collection(op.coll).doc(op.id);
+        if(op.type==="merge") b.set(ref, op.data, {merge:true});
+        else if(op.type==="put") b.set(ref, op.data);
+        else if(op.type==="remove") b.delete(ref);
+      });
+      return b.commit();
+    }
   };
 }
 function localStore(){
@@ -662,7 +672,18 @@ function localStore(){
     watch(coll, cb){ (watchers[coll]=watchers[coll]||[]).push(cb); Promise.resolve().then(()=>cb(mapOf(coll))); return ()=>{ watchers[coll]=(watchers[coll]||[]).filter(x=>x!==cb); }; },
     put(coll,id,data){ (mem[coll]=mem[coll]||{})[id]=Object.assign({},data); delete mem[coll][id].id; save(); fire(coll); return Promise.resolve(); },
     merge(coll,id,data){ const cur=(mem[coll]=mem[coll]||{})[id]||{}; mem[coll][id]=deepMerge(cur,data); delete mem[coll][id].id; save(); fire(coll); return Promise.resolve(); },
-    remove(coll,id){ if(mem[coll]) delete mem[coll][id]; save(); fire(coll); return Promise.resolve(); }
+    remove(coll,id){ if(mem[coll]) delete mem[coll][id]; save(); fire(coll); return Promise.resolve(); },
+    batchWrite(ops){
+      ops.forEach(op=>{
+        if(op.type==="merge"){ const cur=(mem[op.coll]=mem[op.coll]||{})[op.id]||{}; mem[op.coll][op.id]=deepMerge(cur,op.data); delete mem[op.coll][op.id].id; }
+        else if(op.type==="put"){ (mem[op.coll]=mem[op.coll]||{})[op.id]=Object.assign({},op.data); delete mem[op.coll][op.id].id; }
+        else if(op.type==="remove"){ if(mem[op.coll]) delete mem[op.coll][op.id]; }
+      });
+      save();
+      const colls = {}; ops.forEach(op=> colls[op.coll]=true);
+      Object.keys(colls).forEach(fire);
+      return Promise.resolve();
+    }
   };
 }
 function deepMerge(a,b){
@@ -1776,15 +1797,42 @@ async function onModalClick(e){
     const typeId = b.dataset.type;
     const logId = b.dataset.id;
     const log = DB.stockLogs[logId];
-    await store.remove("stockLogs", logId);
     if(log){
       const t = DB.pamphletTypes[typeId];
       if(t){
         const newQty = Math.max(0, num(t.stockQty) - num(log.delta));
         t.stockQty = newQty;
-        await store.merge("pamphletTypes", typeId, {stockQty:newQty, stockUpdatedAt: now()});
+        await store.batchWrite([
+          {type:"remove", coll:"stockLogs", id:logId},
+          {type:"merge", coll:"pamphletTypes", id:typeId, data:{stockQty:newQty, stockUpdatedAt: now()}}
+        ]);
+      } else {
+        await store.remove("stockLogs", logId);
       }
+    } else {
+      await store.remove("stockLogs", logId);
     }
+    openStockHistory(typeId);
+    renderAll();
+  }
+  else if(a==="stock-log-fix"){
+    const typeId = b.dataset.type;
+    const t = DB.pamphletTypes[typeId];
+    if(!t) return;
+    const logs = Object.values(DB.stockLogs).filter(l=> l.typeId===typeId)
+      .sort((a,b2)=> String(b2.createdAt||"").localeCompare(String(a.createdAt||"")));
+    const before = logs.length ? num(logs[0].after) : 0;
+    const after = num(t.stockQty);
+    const delta = after - before;
+    if(delta===0){ showBanner("差分がないため補正の必要はありません。","info"); openStockHistory(typeId); return; }
+    if(!confirm("履歴の残数（"+before+"部）と現在の在庫（"+after+"部）の差分 "+(delta>0?"+":"")+delta+"部 を、補正の履歴として1件追加しますか？（在庫数そのものは変更しません）")) return;
+    await store.put("stockLogs", uid(), {
+      typeId, typeName: t.name||"",
+      delta, reason: "manual",
+      note: "履歴反映漏れの補正",
+      refKind: "", refId: "",
+      before, after, createdAt: now()
+    });
     openStockHistory(typeId);
     renderAll();
   }
@@ -2442,19 +2490,22 @@ function viewPrint(){
 
 /* ===== 在庫管理タブ ===== */
 async function adjustStock(typeId, delta, reason, note, refKind, refId){
-  const t = DB.pamphletTypes[typeId]; if(!t) return;
+  const t = DB.pamphletTypes[typeId]; if(!t) return false;
   const before = num(t.stockQty);
   let after = before + delta;
   let clamped = false;
   if(after < 0){ after = 0; clamped = true; }
-  await store.merge("pamphletTypes", typeId, {stockQty: after, stockUpdatedAt: now()});
-  await store.put("stockLogs", uid(), {
-    typeId, typeName: t.name||"",
-    delta: (after - before), reason: reason||"manual",
-    note: (note||"") + (clamped ? "（在庫不足のため0で記録）" : ""),
-    refKind: refKind||"", refId: refId||"",
-    before, after, createdAt: now()
-  });
+  await store.batchWrite([
+    {type:"merge", coll:"pamphletTypes", id:typeId, data:{stockQty: after, stockUpdatedAt: now()}},
+    {type:"put", coll:"stockLogs", id:uid(), data:{
+      typeId, typeName: t.name||"",
+      delta: (after - before), reason: reason||"manual",
+      note: (note||"") + (clamped ? "（在庫不足のため0で記録）" : ""),
+      refKind: refKind||"", refId: refId||"",
+      before, after, createdAt: now()
+    }}
+  ]);
+  return true;
 }
 function stockReasonLabel(r){
   return r==="ready" ? "発送準備完了（自動）" : r==="delivered" ? "印刷発注 納品（自動）" : "手入力";
@@ -2480,7 +2531,14 @@ function openStockHistory(typeId){
       '<td style="white-space:nowrap"><button type="button" class="btn sm danger" data-act="stock-log-del" data-id="'+l.id+'" data-type="'+typeId+'">削除</button></td>'+
     '</tr>';
   }).join("");
+  const lastAfter = logs.length ? num(logs[0].after) : 0;
+  const curQty = num(t.stockQty);
+  const mismatchHtml = (curQty!==lastAfter) ?
+    '<div class="notice-box" style="margin-bottom:8px"><b>履歴の残数（'+lastAfter+'部）と現在の在庫（'+curQty+'部）が一致していません。</b>'+
+    '差分 '+(curQty-lastAfter>0?"+":"")+(curQty-lastAfter)+'部 の履歴が反映されていない可能性があります。'+
+    '<div style="margin-top:6px"><button type="button" class="btn sm" data-act="stock-log-fix" data-type="'+typeId+'">差分を履歴に補正として追加</button></div></div>' : '';
   openModal("在庫増減履歴："+(t.name||""),
+    mismatchHtml +
     '<div class="muted" style="margin-bottom:8px">現在の在庫：<b>'+num(t.stockQty)+' 部</b></div>'+
     '<div class="tbl-wrap"><table><thead><tr><th>日時</th><th>区分</th><th>メモ</th><th class="num">増減</th><th class="num">残数</th><th></th></tr></thead><tbody>'+
     (rows || '<tr><td colspan="6" class="muted">まだ履歴がありません</td></tr>')+
@@ -2830,8 +2888,9 @@ async function onChange(e){
     await store.merge("printOrders", id, {status:newStatus, updatedAt:now()});
     if(p && newStatus==="納品済" && prevStatus!=="納品済" && !p.stockApplied){
       const qty = num(p.qty);
-      if(qty>0) await adjustStock(p.typeId, qty, "delivered", (p.typeName||"")+"　印刷発注 納品", "printOrder", id);
-      await store.merge("printOrders", id, {stockApplied:true});
+      const applied = qty>0 ? await adjustStock(p.typeId, qty, "delivered", (p.typeName||"")+"　印刷発注 納品", "printOrder", id) : true;
+      if(applied) await store.merge("printOrders", id, {stockApplied:true});
+      else showBanner("「"+(p.typeName||"")+"」の在庫反映に失敗しました（パンフレット種類が見つかりません）。設定タブでご確認ください。","err");
     }
     renderAll(); return;
   }
