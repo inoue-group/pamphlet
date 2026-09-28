@@ -360,6 +360,11 @@ window.PAMPH_FIREBASE_CONFIG = {
   .chat-msg a{ color:inherit; text-decoration:underline }
   .chat-input-row{ display:flex; gap:6px; padding:10px; border-top:1px solid var(--line) }
   .chat-input-row .btn.primary{ background:#F39800; border-color:#F39800 }
+  .admin-chat-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px }
+  @media (max-width:900px){ .admin-chat-grid{ grid-template-columns:repeat(2,1fr) } }
+  @media (max-width:600px){ .admin-chat-grid{ grid-template-columns:1fr } }
+  .chat-panel-static{ background:var(--panel); border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow); display:flex; flex-direction:column; overflow:hidden; height:380px }
+  .chat-panel-static .chat-msgs{ font-size:12.5px }
   .chat-input-row input{ flex:1; min-width:0 }
   .chat-tmpl-btn{ flex:none; width:24px; height:24px; border-radius:50%; border:1.5px solid var(--ink-soft); background:transparent; font-size:13px; font-weight:700; line-height:1; cursor:pointer; color:var(--ink-soft); display:flex; align-items:center; justify-content:center; padding:0 }
   .chat-tmpl-btn:hover{ border-color:#F39800; color:#F39800; box-shadow:0 0 8px color-mix(in srgb, #F39800 45%, transparent) }
@@ -436,6 +441,7 @@ window.PAMPH_FIREBASE_CONFIG = {
     <button data-tab="catalog"   aria-selected="false">WEBカタログ</button>
     <button data-tab="settings"  aria-selected="false">設定</button>
     <button data-tab="feedback"  aria-selected="false">意見箱</button>
+    <button data-tab="admin"     aria-selected="false">管理画面</button>
     <span class="user-row">
       <span id="presenceList" class="presence-list"></span>
       <button type="button" class="user-badge" id="userBadge" title="クリックして名前を設定・変更">…</button>
@@ -484,6 +490,7 @@ const now = ()=> new Date().toISOString();
 const uid = ()=> Date.now().toString(36) + Math.random().toString(36).slice(2,7);
 const esc = s => String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const num = v => { const n = Number(v); return Number.isFinite(n)? n : 0; };
+const stripTags = html => String(html==null?"":html).replace(/<br\s*\/?>/gi,"\n").replace(/<[^>]*>/g,"").replace(/&nbsp;/g," ").replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&quot;/g,'"').replace(/&#39;/g,"'").trim();
 const pad2 = n => String(n).padStart(2,"0");
 function todayMonth(){ const d=new Date(); return d.getFullYear()+"-"+pad2(d.getMonth()+1); }
 function todayISO(){ const d=new Date(); return d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate()); }
@@ -699,8 +706,8 @@ function deepMerge(a,b){
 /* ---------- state ---------- */
 const store = makeStore();
 const DB = { stores:{}, pamphletTypes:{}, orderSheets:{}, printOrders:{}, config:{}, catalogs:{}, announcements:{}, feedback:{}, stockLogs:{}, presence:{}, stockReports:{} };
-const COLLS = ["stores","pamphletTypes","orderSheets","printOrders","config","catalogs","announcements","feedback","stockLogs","presence","stockReports","peopleRoles"];
-const DUMP_COLLS = ["stores","pamphletTypes","config","orderSheets","printOrders","catalogs","announcements","feedback","stockLogs","stockReports","peopleRoles"];
+const COLLS = ["stores","pamphletTypes","orderSheets","printOrders","config","catalogs","announcements","feedback","stockLogs","presence","stockReports","peopleRoles","chatLogs"];
+const DUMP_COLLS = ["stores","pamphletTypes","config","orderSheets","printOrders","catalogs","announcements","feedback","stockLogs","stockReports","peopleRoles","chatLogs"];
 
 const UI = {
   tab:"order",
@@ -1401,6 +1408,12 @@ function boot(){
         qty: rep.qty, unit: rep.unit, reportedAt: now(), reportedBy: getDisplayName()||""
       });
     }
+    const stSel = DB.stores[UI.storeId];
+    store.put("chatLogs", uid(), {
+      storeId: UI.storeId||"", storeName: (stSel && stSel.name) || "",
+      userName: getDisplayName()||"", question: v, answer: stripTags(ans),
+      createdAt: now()
+    });
     setTimeout(function(){ pushChatMsg("bot", ans); }, 200);
   }
   let chatFitTimer = null;
@@ -1916,7 +1929,7 @@ function viewSettingsLock(label){
 }
 const ADMIN_ONLY_MSG = "こちらは管理者専用機能になります。ご質問・ご要望がありましたら管理者へお問い合わせください。";
 const ADMIN_ONLY_SHORT = "こちらは管理者専用機能です。";
-const PW_GATED_TABS = ["summary","stock","print","settings"];
+const PW_GATED_TABS = ["summary","stock","print","settings","admin"];
 function isAdminRole(){ return getDisplayRole()==="admin"; }
 function showAdminOnlyNotice(){ showBanner(ADMIN_ONLY_MSG, "center"); }
 function viewAdminLocked(label){
@@ -2077,6 +2090,7 @@ function renderAll(){
   else if(UI.tab==="catalog") v.innerHTML = viewCatalog();
   else if(UI.tab==="settings")v.innerHTML = (settingsPassHash()&&!isAdminRole()) ? viewAdminLocked("設定タブ") : (settingsUnlocked() ? viewSettings() : viewSettingsLock("設定タブ"));
   else if(UI.tab==="feedback") v.innerHTML = viewFeedback();
+  else if(UI.tab==="admin")   v.innerHTML = (settingsPassHash()&&!isAdminRole()) ? viewAdminLocked("管理画面") : (settingsUnlocked() ? viewAdmin() : viewSettingsLock("管理画面"));
 
   if(fk){
     const t = v.querySelector('[data-fk="'+ (window.CSS && CSS.escape ? CSS.escape(fk) : fk) +'"]');
@@ -2695,6 +2709,32 @@ function viewFeedback(){
       '<h2>過去の意見・ご要望</h2>'+
       '<div class="sub">これまでに届いたご意見と、その対応内容を全員で共有できます。対応欄はその場で編集・保存されます。</div>'+
       (histRows || '<p class="muted">まだ投稿はありません。</p>')+
+    '</section>';
+}
+
+/* ===== 管理画面タブ（検索チャット利用履歴） ===== */
+function viewAdmin(){
+  const byStore = {};
+  Object.values(DB.chatLogs||{}).forEach(c=>{
+    const key = c.storeId || "__none__";
+    (byStore[key] = byStore[key]||[]).push(c);
+  });
+  const stores = storesSorted();
+  const cards = stores.map(s=>{
+    const logs = (byStore[s.id]||[]).sort((a,b)=> String(a.createdAt||"").localeCompare(String(b.createdAt||"")));
+    const msgs = logs.length ? logs.map(c=>{
+      const who = c.userName ? esc(c.userName)+'：' : '';
+      return '<div class="chat-msg user">'+who+esc(c.question||"")+'</div>'+
+             '<div class="chat-msg bot">'+esc(c.answer||"").replace(/\n/g,"<br>")+'</div>';
+    }).join("") : '<div class="muted" style="padding:8px 4px">まだ利用履歴がありません</div>';
+    return '<div class="chat-panel-static">'+
+      '<div class="chat-head"><b>'+esc(s.name)+'</b><span class="muted" style="font-size:11px">'+logs.length+'件</span></div>'+
+      '<div class="chat-msgs">'+msgs+'</div>'+
+    '</div>';
+  }).join("");
+  return '<section class="panel">'+
+    '<div class="tab-head"><h2>管理画面（検索チャット利用履歴）</h2><div class="sub">各店舗の検索チャットでのやり取りを、店舗ごとに一覧で確認できます。</div></div>'+
+    (stores.length ? '<div class="admin-chat-grid">'+cards+'</div>' : '<p class="muted">店舗が登録されていません。</p>')+
     '</section>';
 }
 
