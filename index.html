@@ -1238,6 +1238,7 @@ function boot(){
     renderAll();
     maybeAutoTour(UI.tab);
     if(UI.tab==="stock") maybeShowLowStockAlert();
+    if(UI.tab==="print") reconcilePrintOrders().then(()=>{ if(UI.tab==="print") renderAll(); });
   });
 
   const v = $("#view");
@@ -2521,6 +2522,29 @@ async function adjustStock(typeId, delta, reason, note, refKind, refId){
   ]);
   return true;
 }
+let reconcilingPrintOrders = false;
+async function reconcilePrintOrders(){
+  if(reconcilingPrintOrders) return;
+  reconcilingPrintOrders = true;
+  try{
+    const delivered = Object.values(DB.printOrders||{}).filter(p=> p.status==="納品済");
+    for(const p of delivered){
+      const hasLog = Object.values(DB.stockLogs||{}).some(l=> l.refKind==="printOrder" && l.refId===p.id);
+      if(hasLog){
+        if(!p.stockApplied) await store.merge("printOrders", p.id, {stockApplied:true});
+        continue;
+      }
+      const qty = num(p.qty);
+      if(qty<=0){ if(!p.stockApplied) await store.merge("printOrders", p.id, {stockApplied:true}); continue; }
+      try{
+        const applied = await adjustStock(p.typeId, qty, "delivered", (p.typeName||"")+"　印刷発注 納品（自動補正）", "printOrder", p.id);
+        if(applied) await store.merge("printOrders", p.id, {stockApplied:true});
+      }catch(e){ console.error("reconcilePrintOrders failed for", p.id, e); }
+    }
+  } finally {
+    reconcilingPrintOrders = false;
+  }
+}
 function stockReasonLabel(r){
   return r==="ready" ? "発送準備完了（自動）" : r==="delivered" ? "印刷発注 納品（自動）" : "手入力";
 }
@@ -2928,9 +2952,13 @@ async function onChange(e){
     await store.merge("printOrders", id, {status:newStatus, updatedAt:now()});
     if(p && newStatus==="納品済" && prevStatus!=="納品済" && !p.stockApplied){
       const qty = num(p.qty);
-      const applied = qty>0 ? await adjustStock(p.typeId, qty, "delivered", (p.typeName||"")+"　印刷発注 納品", "printOrder", id) : true;
-      if(applied) await store.merge("printOrders", id, {stockApplied:true});
-      else showBanner("「"+(p.typeName||"")+"」の在庫反映に失敗しました（パンフレット種類が見つかりません）。設定タブでご確認ください。","err");
+      try{
+        const applied = qty>0 ? await adjustStock(p.typeId, qty, "delivered", (p.typeName||"")+"　印刷発注 納品", "printOrder", id) : true;
+        if(applied) await store.merge("printOrders", id, {stockApplied:true});
+        else showBanner("「"+(p.typeName||"")+"」の在庫反映に失敗しました（パンフレット種類が見つかりません）。設定タブでご確認ください。","err");
+      }catch(err){
+        showBanner("「"+(p.typeName||"")+"」の在庫反映でエラーが発生しました："+(err && (err.code||err.message)||err),"err");
+      }
     }
     renderAll(); return;
   }
