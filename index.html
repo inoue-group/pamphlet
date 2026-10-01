@@ -2830,8 +2830,8 @@ function viewSettings(){
       return '<div class="rowline">'+
         '<span class="muted" style="min-width:78px;align-self:center">登録日<br>'+esc((a.createdAt||"").slice(0,10))+'</span>'+
         '<textarea class="grow" data-act="an-text" data-id="'+a.id+'" data-fk="ant-'+a.id+'" style="min-height:44px" placeholder="お知らせ内容">'+esc(a.text||"")+'</textarea>'+
-        '<span class="muted" style="display:inline-flex;flex-direction:column;gap:2px;align-self:center">開始<input type="date" data-act="an-from" data-id="'+a.id+'" data-fk="anf-'+a.id+'" value="'+esc(a.from||"")+'"></span>'+
-        '<span class="muted" style="display:inline-flex;flex-direction:column;gap:2px;align-self:center">終了<input type="date" data-act="an-to" data-id="'+a.id+'" data-fk="ant2-'+a.id+'" value="'+esc(a.to||"")+'"></span>'+
+        '<span class="muted" style="display:inline-flex;flex-direction:column;gap:2px;align-self:center">開始<input type="date" readonly data-act="an-from" data-id="'+a.id+'" data-fk="anf-'+a.id+'" value="'+esc(a.from||"")+'"></span>'+
+        '<span class="muted" style="display:inline-flex;flex-direction:column;gap:2px;align-self:center">終了<input type="date" readonly data-act="an-to" data-id="'+a.id+'" data-fk="ant2-'+a.id+'" value="'+esc(a.to||"")+'"></span>'+
         '<span class="pill" style="background:'+(live?"var(--ok)":"var(--ink-soft)")+';margin-top:22px">'+(live?"表示中":"非表示")+'</span>'+
         '<button class="btn sm danger" data-act="an-del" data-id="'+a.id+'" style="margin-top:22px">削除</button>'+
       '</div>';
