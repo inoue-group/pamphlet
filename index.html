@@ -194,6 +194,7 @@ window.PAMPH_FIREBASE_CONFIG = {
   .card select{width:100%; text-align:center; font-weight:700; color:var(--ink-soft); cursor:pointer}
   .card select.qset{color:var(--qty-warn-color, #d80026); text-shadow:var(--qty-warn-glow, none); font-weight:var(--qty-warn-weight, 700); border-color:var(--qty-warn-border, var(--line-strong)); box-shadow:var(--qty-warn-boxglow, none)}
   .card.has-qty{border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-soft) inset}
+  .card.low-stock{border-color:var(--danger); box-shadow:0 0 0 2px color-mix(in srgb, var(--danger) 25%, transparent) inset}
   .conv{font-size:11px; color:var(--ink-soft); text-align:center; min-height:1.2em}
   .utag{display:inline-block; font-size:10px; font-weight:700; padding:1px 6px; border-radius:999px; background:var(--chip); color:var(--ink-soft); margin-left:6px}
 
@@ -1235,9 +1236,9 @@ function boot(){
     if(PW_GATED_TABS.indexOf(b.dataset.tab)>=0 && settingsPassHash() && !isAdminRole()){ showAdminOnlyNotice(); return; }
     UI.tab = b.dataset.tab;
     $$("#tabs button").forEach(x=> x.setAttribute("aria-selected", x===b ? "true":"false"));
+    if(UI.tab==="stock") maybeShowLowStockAlert();
     renderAll();
     maybeAutoTour(UI.tab);
-    if(UI.tab==="stock") maybeShowLowStockAlert();
     if(UI.tab==="print") reconcilePrintOrders().then(()=>{ if(UI.tab==="print") renderAll(); });
   });
 
@@ -2034,7 +2035,17 @@ function setTabBadge(tabKey, n){
 function renderTabBadges(){
   setTabBadge('submitted', subUnconfirmedCount());
   setTabBadge('print', poUnconfirmedCount());
-  setTabBadge('stock', criticalLowStockTypes().length);
+  setTabBadge('stock', unseenLowStockCount());
+}
+function unseenLowStockCount(){
+  const critical = criticalLowStockTypes();
+  if(!critical.length) return 0;
+  const tm = todayMonth();
+  let seen = null;
+  try{ seen = JSON.parse(localStorage.getItem("pamph_lowstock_seen")||"null"); }catch(e){}
+  if(!seen || seen.month !== tm) return critical.length;
+  const seenIds = seen.typeIds || [];
+  return critical.filter(t=> seenIds.indexOf(t.id)<0).length;
 }
 function maybeShowLowStockAlert(){
   const critical = criticalLowStockTypes();
@@ -2616,6 +2627,8 @@ function openLowStockHelper(storeId){
   renderAll();
 }
 function viewStock(){
+  const critical = criticalLowStockTypes();
+  const criticalIds = {}; critical.forEach(t=> criticalIds[t.id]=true);
   const byCat = typesByCat(true);
   const body = CATS.map(cat=>{
     const list = byCat[cat.key]||[];
@@ -2624,20 +2637,27 @@ function viewStock(){
       const img = t.coverImage ? '<img class="thumb" loading="lazy" src="'+t.coverImage+'" alt="">' : '<div class="thumb ph">表紙未登録</div>';
       const bcol = brandColor(t.brand);
       const qty = num(t.stockQty);
-      return '<div class="card">'+
+      const low = criticalIds[t.id];
+      return '<div class="card'+(low?" low-stock":"")+'">'+
+        (low ? '<span class="lsh-badge" title="在庫が少なくなっています"></span>' : '')+
         '<span class="bdot" style="background:'+bcol+'" title="ブランド"></span>'+
         '<button type="button" class="thumb-btn" data-act="stock-hist" data-id="'+t.id+'" title="増減履歴を見る">'+img+'</button>'+
-        '<div class="nm">'+esc(t.name)+'</div>'+
+        '<div class="nm">'+esc(t.name)+(low?' <span class="pill" style="background:var(--danger);color:#fff;font-size:10px;vertical-align:middle">少なめ</span>':'')+'</div>'+
         '<div class="stock-row"><input type="text" inputmode="numeric" pattern="[0-9]*" class="short" data-act="stock-qty" data-id="'+t.id+'" data-fk="stk-'+t.id+'" value="'+qty+'"> 部</div>'+
       '</div>';
     }).join("") + '</div>';
   }).join("");
 
+  const criticalNotice = critical.length ?
+    '<div class="notice-box" style="margin-bottom:12px"><b>在庫が少なくなっている可能性があるパンフレット（'+critical.length+'件）</b><br>'+
+    critical.map(t=>esc(t.name)).join('、')+
+    '</div>' : '';
+
   return '<section class="panel">'+
     '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">'+
       '<div style="flex:1;min-width:260px"><h2>在庫管理</h2><div class="sub">各パンフレットの現在の在庫部数を管理します。数量欄に直接入力すると手動で更新できます。「提出済み」タブで店舗を「準備済にする」と自動的に減り、「印刷発注」タブで「納品済」にすると自動的に増えます。表紙をクリックすると増減の記録を確認できます。</div></div>'+
       '<button class="btn" data-act="open-guide" style="flex:none;margin-left:auto">使い方ガイド</button>'+
-    '</div>'+ (body || '<p class="muted">パンフレット種類が登録されていません。</p>') +
+    '</div>'+ criticalNotice + (body || '<p class="muted">パンフレット種類が登録されていません。</p>') +
     '</section>';
 }
 
